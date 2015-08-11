@@ -1,5 +1,7 @@
 #include <nan.h>
 
+#include <uv.h>
+
 #include <visa.h>
 
 #include <stdlib.h>
@@ -12,8 +14,13 @@
 
 #define MAX_CNT 1024
 
+uv_loop_t *loop;
+uv_async_t async;
 ViStatus write(ViSession instr1, const char* input);
 ViStatus _VI_FUNCH callback(ViSession vi, ViEventType etype, ViEvent eventContext, ViAddr userHandle);
+
+
+
 
 using namespace Nan;  // NOLINT(build/namespaces)
 
@@ -28,7 +35,7 @@ class MyObject : public node::ObjectWrap {
   static NAN_METHOD(CallEmit);
   static Persistent<v8::Function> constructor;
   void MyObject::ConnectToDamnVIsa();
-  
+  void RealCallback(uv_async_t* handle, int status);
 };
 
 Persistent<v8::Function> MyObject::constructor;
@@ -49,6 +56,9 @@ NAN_MODULE_INIT(MyObject::Init) {
 
   constructor.Reset(tpl->GetFunction());
   Set(target, Nan::New("MyObject").ToLocalChecked(), tpl->GetFunction());
+  
+  loop = uv_default_loop();
+  uv_async_init(loop, &async, RealCallback);
 }
 
 NAN_METHOD(MyObject::New) {
@@ -98,25 +108,34 @@ void MyObject::ConnectToDamnVIsa()
   
 }
 
+void RealCallback(uv_async_t* handle, int status)
+{
+    v8::Handle<v8::Object> globalObj = Nan::GetCurrentContext()->Global();
+    
+    v8::Local<v8::Value> argv[1] = {
+      Nan::New("event").ToLocalChecked(),  // event name
+    };
+    
+    //MakeCallback(Nan::New<v8::Object>(this->This), "emit", 1, argv);
+    
+    MakeCallback(globalObj, "emit", 1, argv); 
+  
+}
+
 
 ViStatus _VI_FUNCH callback(ViSession vi, ViEventType etype, ViEvent eventContext, ViAddr userHandle)
 {
-  v8::Handle<v8::Object> globalObj = Nan::GetCurrentContext()->Global();
-  
 	ViJobId jobID;
 	ViStatus status;
 	ViUInt16 stb;
 	status = viReadSTB(vi, &stb);
 	if ((status >= VI_SUCCESS) && (stb & 0x40))
-	{
-    
-    v8::Local<v8::Value> argv[1] = {
-      Nan::New("event").ToLocalChecked(),  // event name
-    };
-    MakeCallback(Nan::New<v8::Object>(this->This), "emit", 1, argv);
+	{   
+    // need uv_mutex_t  
+    // async.data = stb; who cares about the stb.. you can read it later.
+	  uv_async_send(&async);	
 		// printf("SQR :0x%02x\n", stb); /// yes, it's mine :-) 
 	}
-	status = viReadAsync(vi, (ViBuf)userHandle, MAX_CNT, &jobID);
 	return VI_SUCCESS;
 }
 
