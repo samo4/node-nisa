@@ -1,4 +1,6 @@
-#include <nan.h>
+
+
+#include "makecallback.h"
 
 #include <uv.h>
 
@@ -14,57 +16,52 @@
 
 #define MAX_CNT 1024
 
+
 uv_loop_t *loop;
-uv_async_t async;
+uv_async_t* async;
+
+
+typedef struct {
+  uint16_t stb;
+} vi_callback_result_t;
+
+
+
 ViStatus write(ViSession instr1, const char* input);
 ViStatus _VI_FUNCH callback(ViSession vi, ViEventType etype, ViEvent eventContext, ViAddr userHandle);
 
 
-
-
 using namespace Nan;  // NOLINT(build/namespaces)
 
-class MyObject : public node::ObjectWrap {
- public:
-  static NAN_MODULE_INIT(Init);
-
- private:
-  MyObject();
-  ~MyObject();
-  static NAN_METHOD(New);
-  static NAN_METHOD(CallEmit);
-  static Persistent<v8::Function> constructor;
-  void MyObject::ConnectToDamnVIsa();
-  void RealCallback(uv_async_t* handle, int status);
-};
-
-Persistent<v8::Function> MyObject::constructor;
-
-MyObject::MyObject() {
+VisaEmitter::VisaEmitter() {
 }
 
-MyObject::~MyObject() {
+VisaEmitter::~VisaEmitter() {
 }
 
-NAN_MODULE_INIT(MyObject::Init) {
+NAN_MODULE_INIT(VisaEmitter::Init) {
   // Prepare constructor template
   v8::Local<v8::FunctionTemplate> tpl = Nan::New<v8::FunctionTemplate>(New);
-  tpl->SetClassName(Nan::New<v8::String>("MyObject").ToLocalChecked());
+  tpl->SetClassName(Nan::New<v8::String>("VisaEmitter").ToLocalChecked());
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
-  SetPrototypeMethod(tpl, "call_emit", CallEmit);
+  SetPrototypeMethod(tpl, "ping", Ping);
 
   constructor.Reset(tpl->GetFunction());
-  Set(target, Nan::New("MyObject").ToLocalChecked(), tpl->GetFunction());
-  
-  loop = uv_default_loop();
-  uv_async_init(loop, &async, RealCallback);
-}
+  Set(target, Nan::New("VisaEmitter").ToLocalChecked(), tpl->GetFunction());
+} 
 
-NAN_METHOD(MyObject::New) {
+Persistent<v8::Function> VisaEmitter::constructor;
+
+NAN_METHOD(VisaEmitter::New) {
   if (info.IsConstructCall()) {
-    MyObject* obj = new MyObject();
+    VisaEmitter* obj = new VisaEmitter();
     obj->Wrap(info.This());
+    
+    async = (uv_async_t*) malloc(sizeof(*async));
+    loop = uv_default_loop();
+    uv_async_init(loop, async, async_propagate);
+    
     info.GetReturnValue().Set(info.This());
   } else {
     v8::Local<v8::Function> cons = Nan::New<v8::Function>(constructor);
@@ -72,7 +69,7 @@ NAN_METHOD(MyObject::New) {
   }
 }
 
-NAN_METHOD(MyObject::CallEmit) {
+NAN_METHOD(VisaEmitter::Ping) {
   v8::Local<v8::Value> argv[1] = {
     Nan::New("event").ToLocalChecked(),  // event name
   };
@@ -81,11 +78,20 @@ NAN_METHOD(MyObject::CallEmit) {
   info.GetReturnValue().SetUndefined();
 }
 
-NODE_MODULE(makecallback, MyObject::Init)
+NODE_MODULE(makecallback, VisaEmitter::Init)
+
+void VisaEmitter::async_propagate(uv_async_t *async) {
+  if (!async->data) 
+    return;
+    
+  uv_close((uv_handle_t*) async, NULL);
+}
 
 
 
-/*********************************/
+/*
+
+********************************
 
 void MyObject::ConnectToDamnVIsa()
 {
@@ -121,7 +127,7 @@ void RealCallback(uv_async_t* handle, int status)
     MakeCallback(globalObj, "emit", 1, argv); 
   
 }
-
+*/
 
 ViStatus _VI_FUNCH callback(ViSession vi, ViEventType etype, ViEvent eventContext, ViAddr userHandle)
 {
@@ -131,9 +137,17 @@ ViStatus _VI_FUNCH callback(ViSession vi, ViEventType etype, ViEvent eventContex
 	status = viReadSTB(vi, &stb);
 	if ((status >= VI_SUCCESS) && (stb & 0x40))
 	{   
-    // need uv_mutex_t  
+    
+    
+    // we might need uv_mutex_t
+    vi_callback_result_t* data = (vi_callback_result_t*)malloc (sizeof (vi_callback_result_t));
+    data->stb = stb;
+    async->data = (void*) data;
+    //async->session = vi;
+    uv_async_send(async);
+    
     // async.data = stb; who cares about the stb.. you can read it later.
-	  uv_async_send(&async);	
+	  //uv_async_send(&async);	
 		// printf("SQR :0x%02x\n", stb); /// yes, it's mine :-) 
 	}
 	return VI_SUCCESS;
@@ -147,3 +161,19 @@ ViStatus write(ViSession instr1, const char* input)
 	_snprintf_s(temp, sizeof(temp), input);
 	return viWrite(instr1, (ViBuf)temp, (ViUInt32)strlen(temp), &writeCount);
 }
+
+/* ----------------  */
+
+
+void RunCallback(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+  v8::Local<v8::Function> cb = info[0].As<v8::Function>();
+  const unsigned argc = 1;
+  v8::Local<v8::Value> argv[argc] = { Nan::New("hello world").ToLocalChecked() };
+  Nan::MakeCallback(Nan::GetCurrentContext()->Global(), cb, argc, argv);
+}
+
+void Init(v8::Local<v8::Object> exports, v8::Local<v8::Object> module) {
+  Nan::SetMethod(module, "exports", RunCallback);
+}
+
+// NODE_MODULE(addon, Init)
