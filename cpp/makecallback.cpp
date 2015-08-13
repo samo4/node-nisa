@@ -74,8 +74,7 @@ NAN_METHOD(VisaEmitter::New) {
     status = viEnableEvent(instr1, VI_EVENT_SERVICE_REQ, VI_HNDLR, VI_NULL);
     // end hack test code
     async = (uv_async_t*) malloc(sizeof(*async));
-    loop = uv_default_loop();
-    uv_async_init(loop, async, async_propagate);
+    uv_async_init(uv_default_loop(), async, async_propagate);
     
     info.GetReturnValue().Set(info.This());
   } else {
