@@ -54,10 +54,25 @@ NAN_MODULE_INIT(VisaEmitter::Init) {
 Persistent<v8::Function> VisaEmitter::constructor;
 
 NAN_METHOD(VisaEmitter::New) {
+  ViSession defaultRM;
+  ViSession instr1;
+  ViStatus status;
+  ViBuf bufferHandle;
+  
   if (info.IsConstructCall()) {
     VisaEmitter* obj = new VisaEmitter();
     obj->Wrap(info.This());
     
+    // begin with hack test code
+    status = viOpenDefaultRM(&defaultRM);
+    status = viOpen(defaultRM, "GPIB0::11::INSTR", VI_NULL, VI_NULL, &instr1);
+    viGpibControlREN(instr1, VI_GPIB_REN_ASSERT);
+    write(instr1, "X");
+    viClear(instr1);
+    write(instr1, "M1X"); // enable SRQ on various errors
+    status = viInstallHandler(instr1, VI_EVENT_SERVICE_REQ, callback, bufferHandle);
+    status = viEnableEvent(instr1, VI_EVENT_SERVICE_REQ, VI_HNDLR, VI_NULL);
+    // end hack test code
     async = (uv_async_t*) malloc(sizeof(*async));
     loop = uv_default_loop();
     uv_async_init(loop, async, async_propagate);
@@ -84,50 +99,19 @@ void VisaEmitter::async_propagate(uv_async_t *async) {
   if (!async->data) 
     return;
     
+  v8::Handle<v8::Object> globalObj = Nan::GetCurrentContext()->Global();
+  vi_callback_result_t* data = (vi_callback_result_t*) async->data;
+  
+  v8::Local<v8::Value> argv[3] = {
+      Nan::New("event").ToLocalChecked(),   // event name: change to SRQ
+      Nan::Undefined(),                      // err?
+      Nan::New(data->stb)                        // result?
+  };
+  //When to use MakeCallBack: https://github.com/nodejs/nan/issues/284
+  MakeCallback(globalObj, "emit", 3, argv);
+  
   uv_close((uv_handle_t*) async, NULL);
 }
-
-
-
-/*
-
-********************************
-
-void MyObject::ConnectToDamnVIsa()
-{
-  ViSession defaultRM;
-	ViSession instr1;
-	ViStatus status;
-	ViBuf bufferHandle;
-	ViEventType etype;
-	ViEvent eventContext;
-  
-  status = viOpenDefaultRM(&defaultRM);
-  status = viOpen(defaultRM, "GPIB0::11::INSTR", VI_NULL, VI_NULL, &instr1);
-  viGpibControlREN(instr1, VI_GPIB_REN_ASSERT);
-	write(instr1, "X");
-	viClear(instr1);
-	write(instr1, "M1X"); // enable SRQ on various errors
-
-	status = viInstallHandler(instr1, VI_EVENT_SERVICE_REQ, callback, bufferHandle);
-	status = viEnableEvent(instr1, VI_EVENT_SERVICE_REQ, VI_HNDLR, VI_NULL);
-  
-}
-
-void RealCallback(uv_async_t* handle, int status)
-{
-    v8::Handle<v8::Object> globalObj = Nan::GetCurrentContext()->Global();
-    
-    v8::Local<v8::Value> argv[1] = {
-      Nan::New("event").ToLocalChecked(),  // event name
-    };
-    
-    //MakeCallback(Nan::New<v8::Object>(this->This), "emit", 1, argv);
-    
-    MakeCallback(globalObj, "emit", 1, argv); 
-  
-}
-*/
 
 ViStatus _VI_FUNCH callback(ViSession vi, ViEventType etype, ViEvent eventContext, ViAddr userHandle)
 {
@@ -137,13 +121,11 @@ ViStatus _VI_FUNCH callback(ViSession vi, ViEventType etype, ViEvent eventContex
 	status = viReadSTB(vi, &stb);
 	if ((status >= VI_SUCCESS) && (stb & 0x40))
 	{   
-    
-    
     // we might need uv_mutex_t
     vi_callback_result_t* data = (vi_callback_result_t*)malloc (sizeof (vi_callback_result_t));
     data->stb = stb;
     async->data = (void*) data;
-    //async->session = vi;
+    //async->session = vi; // I think we'll need this later to establish exactly where the event came from.
     uv_async_send(async);
     
     // async.data = stb; who cares about the stb.. you can read it later.
@@ -161,19 +143,3 @@ ViStatus write(ViSession instr1, const char* input)
 	_snprintf_s(temp, sizeof(temp), input);
 	return viWrite(instr1, (ViBuf)temp, (ViUInt32)strlen(temp), &writeCount);
 }
-
-/* ----------------  */
-
-
-void RunCallback(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-  v8::Local<v8::Function> cb = info[0].As<v8::Function>();
-  const unsigned argc = 1;
-  v8::Local<v8::Value> argv[argc] = { Nan::New("hello world").ToLocalChecked() };
-  Nan::MakeCallback(Nan::GetCurrentContext()->Global(), cb, argc, argv);
-}
-
-void Init(v8::Local<v8::Object> exports, v8::Local<v8::Object> module) {
-  Nan::SetMethod(module, "exports", RunCallback);
-}
-
-// NODE_MODULE(addon, Init)
