@@ -101,14 +101,13 @@ void VisaEmitter::async_propagate(uv_async_t *async) {
   v8::Handle<v8::Object> globalObj = Nan::GetCurrentContext()->Global();
   vi_callback_result_t* data = (vi_callback_result_t*) async->data;
   
-  v8::Local<v8::Value> argv[3] = {
+  v8::Local<v8::Value> argv[2] = {
       Nan::New("event").ToLocalChecked(),   // event name: change to SRQ
-      Nan::Undefined(),                      // err?
-      Nan::New(data->stb)                        // result?
+      Nan::New(data->stb).ToLocalChecked()  // result?
   };
   //When to use MakeCallBack: https://github.com/nodejs/nan/issues/284
-  MakeCallback(globalObj, "emit", 3, argv);
-  
+  MakeCallback(globalObj, "emit", 2, argv);
+  // perhaps we should call this sooner?
   uv_close((uv_handle_t*) async, NULL);
 }
 
