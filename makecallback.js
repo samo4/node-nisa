@@ -18,8 +18,8 @@ function mujo()
     console.log("mujo");
 }
 
-var VisaEmitter = require('bindings')({ bindings: 'makecallback' }).VisaEmitter;
-var EventEmitter = require('events').EventEmitter;
+var VisaEmitter = require('bindings')({ bindings: 'makecallback' });
+/*var EventEmitter = require('events').EventEmitter;
 
 // extend prototype
 function inherits(target, source) {
@@ -28,7 +28,8 @@ function inherits(target, source) {
     }
 }
 inherits(VisaEmitter, EventEmitter);
-
+*/
+console.log(VisaEmitter);
 var obj = new VisaEmitter();
 
 obj.on('event', function(e) {
