@@ -4,7 +4,6 @@
 
 #include <uv.h>
 
-#include <visa.h>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -62,6 +61,8 @@ NAN_METHOD(VisaEmitter::New) {
   if (info.IsConstructCall()) {
     VisaEmitter* obj = new VisaEmitter();
     obj->Wrap(info.This());
+      
+      //Persistent<v8::Object>::New(info.This());
     
     // begin with hack test code
     status = viOpenDefaultRM(&defaultRM);
@@ -73,7 +74,8 @@ NAN_METHOD(VisaEmitter::New) {
     status = viInstallHandler(instr1, VI_EVENT_SERVICE_REQ, callback, bufferHandle);
     status = viEnableEvent(instr1, VI_EVENT_SERVICE_REQ, VI_HNDLR, VI_NULL);
     // end hack test code
-    async = (uv_async_t*) malloc(sizeof(*async));
+    async = new uv_async_t; //async = (uv_async_t*) malloc(sizeof(*async));
+    async->data = (void*) this;  //async->data = (void*) info.This(); //(void*) this;
     uv_async_init(uv_default_loop(), async, async_propagate);
     
     info.GetReturnValue().Set(info.This());
@@ -87,8 +89,16 @@ NAN_METHOD(VisaEmitter::Ping) {
   v8::Local<v8::Value> argv[1] = {
     Nan::New("event").ToLocalChecked(),  // event name
   };
-
-  MakeCallback(info.This(), "emit", 1, argv);
+  
+  
+  ViSession defaultRM;
+  ViSession instr1;
+  ViStatus status;
+  status = viOpenDefaultRM(&defaultRM);
+  status = viOpen(defaultRM, "GPIB0::11::INSTR", VI_NULL, VI_NULL, &instr1);
+  write(instr1, "R9F0X"); 
+   
+  // MakeCallback(info.This(), "emit", 1, argv);
   info.GetReturnValue().SetUndefined();
 }
 
@@ -97,16 +107,30 @@ NODE_MODULE(makecallback, VisaEmitter::Init)
 void VisaEmitter::async_propagate(uv_async_t *async) {
   if (!async->data) 
     return;
-    
+   
+  Nan::HandleScope scope;
+  
+ // v8::Local<v8::Value> emit = this->handle()->Get(Nan::New<v8::String>("emit"));
+ // v8::Local<v8::Function> cb = emit.As<v8::Function>();
+  
+  
   v8::Handle<v8::Object> globalObj = Nan::GetCurrentContext()->Global();
   vi_callback_result_t* data = (vi_callback_result_t*) async->data;
   
-  v8::Local<v8::Value> argv[2] = {
+  const unsigned argc = 2;
+  v8::Local<v8::Value> argv[argc] = {
       Nan::New("event").ToLocalChecked(),   // event name: change to SRQ
-      Nan::New(data->stb).ToLocalChecked()  // result?
+      Nan::New(data->stb)				  // result?
   };
   //When to use MakeCallBack: https://github.com/nodejs/nan/issues/284
-  MakeCallback(globalObj, "emit", 2, argv);
+ 
+  v8::Isolate* isolate = v8::Isolate::GetCurrent();
+  v8::Local<v8::String> emit_symbol = v8::String::NewFromUtf8(isolate, "emit");
+  v8::Local<v8::Function> cb = globalObj->Get(emit_symbol).As<v8::Function>();
+  //v8::Local<v8::Value> argv[argc] = { v8::String::NewFromUtf8(isolate, "hello world") };
+  //cb->Call(globalObj, argc, argv);
+  MakeCallback(globalObj, cb, argc, argv);
+  
   // perhaps we should call this sooner?
   uv_close((uv_handle_t*) async, NULL);
 }
