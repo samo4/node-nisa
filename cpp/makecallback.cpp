@@ -13,6 +13,9 @@
 #include <string.h>
 #include <ctime>
 
+#include <nan.h>
+#include <node.h>
+
 #define MAX_CNT 1024
 
 
@@ -21,24 +24,13 @@ namespace raw {
   
   static Persistent<FunctionTemplate> _constructor;
   
+  
   void InitAll (Handle<Object> target) {
     
-    
-    // Prepare constructor template
-    /*
-    v8::Local<v8::FunctionTemplate> tpl = Nan::New<v8::FunctionTemplate>(New);
-    tpl->SetClassName(Nan::New<v8::String>("VisaEmitter").ToLocalChecked());
-    tpl->InstanceTemplate()->SetInternalFieldCount(1);
-  
-    SetPrototypeMethod(tpl, "ping", Ping);
-  
-    constructor.Reset(tpl->GetFunction());
-    Set(target, Nan::New("VisaEmitter").ToLocalChecked(), tpl->GetFunction());*/
-    
       VisaEmitter::Init();
-    
-      Local<Function> constructor = Nan::New<FunctionTemplate>(_constructor)->GetFunction();
-      target->Set(Nan::New<String>("VisaEmitter").ToLocalChecked(), constructor);
+      
+      Local<Function> constructor = NanNew<FunctionTemplate>(_constructor)->GetFunction();
+	    target->Set(NanNew<String>("VisaEmitter"), constructor);
   } 
   
   NODE_MODULE(raw, InitAll)
@@ -68,18 +60,17 @@ namespace raw {
   }
   
   void VisaEmitter::Init() {
-    Isolate* isolate = Isolate::GetCurrent();
-    Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>(VisaEmitter::New);
-    _constructor.Reset(isolate, tpl); //NanAssignPersistent(_constructor, tpl);
-    
-    tpl->SetClassName(Nan::New<String>("VisaEmitter").ToLocalChecked());
+    Local<FunctionTemplate> tpl = NanNew<FunctionTemplate>(VisaEmitter::New);
+    NanAssignPersistent(_constructor, tpl);
+    tpl->SetClassName(NanNew("VisaEmitter"));
     tpl->InstanceTemplate()->SetInternalFieldCount(1);
-    SetPrototypeMethod(tpl, "new", New);
-    SetPrototypeMethod(tpl, "ping", Ping); 
+    
+    NODE_SET_PROTOTYPE_METHOD(tpl, "new", New);
+    NODE_SET_PROTOTYPE_METHOD(tpl, "ping", Ping);
   }
   
   NAN_METHOD(VisaEmitter::New) {
-    Nan::HandleScope scope;
+    NanScope();
 	  VisaEmitter* ve = new VisaEmitter ();
     ve->poll_initialised_ = false;
     /*
@@ -89,24 +80,20 @@ namespace raw {
 		NanReturnUndefined();
 	}
     */
-    ve->Wrap (info.This());
-	  //Nan::ReturnValue(info.This()); //Nan::ReturnThis();  ??
-    info.GetReturnValue().Set(info.This());
+    ve->Wrap (args.This ());
+	  NanReturnThis();
   }
   
   NAN_METHOD(VisaEmitter::Ping) {
-      
+    NanScope();
     Local<Value> argv[2] = {
-      Nan::New("event").ToLocalChecked(),  // event name
-      info[0]
+      NanNew<String>("event"),  // event name
+      args[0]
     };
   
-    Nan::MakeCallback(info.This(), "emit", 2, argv);
+    NanMakeCallback(args.This(), "emit", 2, argv);
     
-    
-    info.GetReturnValue().SetUndefined();
-    //return info.GetReturnValue().SetNull();
-    //info.GetReturnValue().Set(errorno);
+    NanReturnUndefined();
   }
   
   // NODE_MODULE(makecallback, VisaEmitter::Init)
@@ -115,28 +102,30 @@ namespace raw {
     if (!async->data) 
       return;
     
-    Nan::HandleScope scope;
+    NanScope();
     
   // v8::Local<v8::Value> emit = this->handle()->Get(Nan::New<v8::String>("emit"));
   // v8::Local<v8::Function> cb = emit.As<v8::Function>();
     
     
-    v8::Handle<v8::Object> globalObj = Nan::GetCurrentContext()->Global();
+    Handle<Object> globalObj = NanGetCurrentContext()->Global();
     vi_callback_result_t* data = (vi_callback_result_t*) async->data;
     
+    /*
     const unsigned argc = 2;
     v8::Local<v8::Value> argv[argc] = {
-        Nan::New("event").ToLocalChecked(),   // event name: change to SRQ
-        Nan::New(data->stb)				  // result?
-    };
+        NanNew<string>("event"),   // event name: change to SRQ
+        NanNew(data->stb)				  // result?
+    };*/
     //When to use MakeCallBack: https://github.com/nodejs/nan/issues/284
   
-    v8::Isolate* isolate = v8::Isolate::GetCurrent();
-    v8::Local<v8::String> emit_symbol = v8::String::NewFromUtf8(isolate, "emit");
-    v8::Local<v8::Function> cb = globalObj->Get(emit_symbol).As<v8::Function>();
-    //v8::Local<v8::Value> argv[argc] = { v8::String::NewFromUtf8(isolate, "hello world") };
-    //cb->Call(globalObj, argc, argv);
-    Nan::MakeCallback(globalObj, cb, argc, argv);
+    //Isolate* isolate = v8::Isolate::GetCurrent();
+    //Local<String> emit_symbol = String::NewFromUtf8(isolate, "emit");
+    //Local<Function> cb = globalObj->Get(emit_symbol).As<v8::Function>();
+    
+    ////v8::Local<v8::Value> argv[argc] = { v8::String::NewFromUtf8(isolate, "hello world") };
+    ////cb->Call(globalObj, argc, argv);
+    //NanMakeCallback(globalObj, cb, argc, argv);
     
     // perhaps we should call this sooner?
     uv_close((uv_handle_t*) async, NULL);

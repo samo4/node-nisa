@@ -3,6 +3,8 @@
 
 // source: https://bitbucket.org/stephenwvickers/node-raw-socket
 
+// another potential: https://gitlab.com/no9/udt4/tree/master/src
+
 #include <nan.h>
 #include <visa.h>
 
@@ -14,12 +16,10 @@ namespace raw {
   class VisaEmitter : public node::ObjectWrap {
     public:
       void HandleIOEvent (int status, int revents);
-      static void Init ();
+      static void Init();
     private:
       VisaEmitter();
       ~VisaEmitter();
-      
-      static NAN_MODULE_INIT(Init);
     
       static NAN_METHOD(New);
       static NAN_METHOD(Ping);
