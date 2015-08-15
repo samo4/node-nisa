@@ -96,7 +96,35 @@ namespace raw {
     NanReturnUndefined();
   }
   
-  // NODE_MODULE(makecallback, VisaEmitter::Init)
+  void VisaEmitter::HandleIOEvent (int status, int srqStatus) {
+    NanScope();
+  
+    if (status) {
+      Local<Value> emit = NanObjectWrapHandle(this)->Get (NanNew<String>("emit"));
+      Local<Function> cb = emit.As<Function> ();
+  
+      Local<Value> args[2];
+      args[0] = NanNew<String>("error");
+
+      char status_str[32];
+      sprintf(status_str, "%d", status);
+      args[1] = NanError(status_str);
+  
+      cb->Call (NanObjectWrapHandle(this), 2, args);
+    } else {
+      Local<Value> emit = NanObjectWrapHandle(this)->Get (NanNew<String>("emit"));
+      Local<Function> cb = emit.As<Function> ();
+  
+      Local<Value> args[1];
+      args[0] = NanNew<Integer>(srqStatus);
+      cb->Call (NanObjectWrapHandle(this), 1, args);
+    }
+  }
+  
+  static void IoEvent (uv_poll_t* watcher, int status, int revents) {
+    VisaEmitter *socket = static_cast<VisaEmitter*>(watcher->data);
+    socket->HandleIOEvent (status, revents);
+  }
   
   void async_propagate(uv_async_t *async) {
     if (!async->data) 
