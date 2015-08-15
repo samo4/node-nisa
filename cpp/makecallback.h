@@ -4,6 +4,13 @@
 // source: https://bitbucket.org/stephenwvickers/node-raw-socket
 
 // another potential: https://gitlab.com/no9/udt4/tree/master/src
+// and another: https://github.com/bramp/nodewii/blob/master/src/wiimote.cc
+// more aysnc: http://blog.trevnorris.com/2013/07/node-with-threads.html http://bramp.github.io/nodewii-talk
+// and: http://blog.trevnorris.com/2013/07/node-with-threads.html
+
+// and this one when we're ready for 2.x https://github.com/nodejs/nan/issues/376#issuecomment-120838432
+
+
 
 #include <nan.h>
 #include <visa.h>
@@ -20,6 +27,8 @@ namespace raw {
     private:
       VisaEmitter();
       ~VisaEmitter();
+      
+      int Connect (void);
     
       static NAN_METHOD(New);
       static NAN_METHOD(Ping);

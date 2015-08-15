@@ -18,13 +18,30 @@
 
 #define MAX_CNT 1024
 
+#ifdef _WIN32
+static char errbuf[1024];
+#endif
+const char* raw_strerror (int code) {
+#ifdef _WIN32
+	if (FormatMessage (FORMAT_MESSAGE_FROM_SYSTEM, 0, code, 0, errbuf,
+			1024, NULL)) {
+		return errbuf;
+	} else {
+		strcpy (errbuf, "Unknown error");
+		return errbuf;
+	}
+#else
+	return strerror (code);
+#endif
+}
+
 
 namespace raw {
   using namespace v8;
   
+  void async_propagate(uv_async_t *async);
+  
   static Persistent<FunctionTemplate> _constructor;
-  
-  
   void InitAll (Handle<Object> target) {
     
       VisaEmitter::Init();
@@ -73,13 +90,13 @@ namespace raw {
     NanScope();
 	  VisaEmitter* ve = new VisaEmitter ();
     ve->poll_initialised_ = false;
-    /*
-    rc = socket->CreateSocket ();
-	if (rc != 0) {
-		NanThrowError(raw_strerror (rc));
-		NanReturnUndefined();
-	}
-    */
+    int viStatus;
+    viStatus = ve->Connect();
+    if (viStatus != 0) {
+      NanThrowError(raw_strerror (viStatus));
+      NanReturnUndefined();
+    }
+    
     ve->Wrap (args.This ());
 	  NanReturnThis();
   }
@@ -94,6 +111,22 @@ namespace raw {
     NanMakeCallback(args.This(), "emit", 2, argv);
     
     NanReturnUndefined();
+  }
+  
+  int VisaEmitter::Connect (void) {
+    if (this->poll_initialised_)
+      return 0;
+     
+    async = (uv_async_t*) malloc(sizeof(*async));
+    
+    if (async->data == this) return -1;
+    async->data = this;
+    
+    uv_async_init(uv_default_loop(), &async, (uv_async_cb) async_propagate);
+      
+    this->poll_initialised_ = true;
+	
+    return 0;
   }
   
   void VisaEmitter::HandleIOEvent (int status, int srqStatus) {
@@ -122,11 +155,11 @@ namespace raw {
   }
   
   static void IoEvent (uv_poll_t* watcher, int status, int revents) {
-    VisaEmitter *socket = static_cast<VisaEmitter*>(watcher->data);
-    socket->HandleIOEvent (status, revents);
+    VisaEmitter *ve = static_cast<VisaEmitter*>(watcher->data);
+    ve->HandleIOEvent (status, revents);
   }
   
-  void async_propagate(uv_async_t *async) {
+  void async_propagate(uv_async_t *async, int status) {
     if (!async->data) 
       return;
     
