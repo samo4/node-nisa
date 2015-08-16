@@ -153,10 +153,9 @@ namespace raw {
       return;
     
     VisaEmitter* async = static_cast<VisaEmitter*>(handle->data);
-    async->HandleIOEvent (0, 12);
+    async->HandleHardwareEvent (0, async->lastSTB);
     // if we call this, then no more events are 
     // uv_close((uv_handle_t*) async, NULL); ??
-    printf("async.HandleIOEvent\n");
     return;
     
     NanScope();
@@ -188,16 +187,15 @@ namespace raw {
     
   } 
   
-  ViStatus _VI_FUNCH callback(ViSession vi, ViEventType etype, ViEvent eventContext, ViAddr userHandle)
+  ViStatus _VI_FUNCH callback(ViSession session_, ViEventType etype, ViEvent eventContext, ViAddr userHandle)
   {
     ViJobId jobID;
     ViStatus status;
     ViUInt16 stb;
-    status = viReadSTB(vi, &stb);
+    status = viReadSTB(session_, &stb);
     if ((status >= VI_SUCCESS) && (stb & 0x40))
     {   
-      printf("callback: %d\n", stb);
-      raw::VisaEmitter::DispatchEventToAllInstances(stb);
+      raw::VisaEmitter::DispatchEventToAllInstances(stb, session_);
       // we might need uv_mutex_t
       //vi_callback_result_t* data = (vi_callback_result_t*)malloc (sizeof (vi_callback_result_t));
       //data->stb = stb;

@@ -39,11 +39,11 @@ namespace raw {
     public:
       static ViSession defaultRM;
       ViSession session;
+      int lastSTB;
       
-      void HandleIOEvent (int status, int revents);
+      void HandleHardwareEvent (int status, int revents);
       static void Init();
-      void DispatchEvent(int stb);
-      static void DispatchEventToAllInstances(int stb);
+      static void DispatchEventToAllInstances(int stb, ViSession session_);
     private:
     
       explicit VisaEmitter  (std::string s = "");

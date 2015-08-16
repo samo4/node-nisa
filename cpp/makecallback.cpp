@@ -214,9 +214,9 @@ namespace raw {
 		NanReturnUndefined();
 	}
   
-  void VisaEmitter::HandleIOEvent (int status, int srqStatus) {
+  void VisaEmitter::HandleHardwareEvent (int status, int srqStatus) {
     NanScope();
-    if (status) {
+    /*if (status) {
       Local<Value> emit = NanObjectWrapHandle(this)->Get (NanNew<String>("emit"));
       Local<Function> cb = emit.As<Function> ();
   
@@ -228,7 +228,7 @@ namespace raw {
       args[1] = NanError(status_str);
   
       cb->Call (NanObjectWrapHandle(this), 2, args);
-    } else {
+    } else {*/
       Local<Value> emit = NanObjectWrapHandle(this)->Get (NanNew<String>("emit"));
       Local<Function> cb = emit.As<Function> ();
   
@@ -237,26 +237,22 @@ namespace raw {
       args[0] = NanNew<String>("srq");
       args[1] = NanNew<Integer>(srqStatus);
       cb->Call (NanObjectWrapHandle(this), argc, args);
-    }
-    printf("HandleIOEvent: %d, %d\n", status, srqStatus);
+    //}
   }
   
-  void VisaEmitter::DispatchEventToAllInstances(int stb)
+  void VisaEmitter::DispatchEventToAllInstances(int stb, ViSession session_)
   {
-    uv_async_send(&(instances.at(0)->m_async));
-    
-    /*
+     // uv_async_send(&(instances.at(0)->m_async)); 
     for(auto i : instances) 
-    
-    static void IoEvent (uv_poll_t* watcher, int status, int revents) {
+    {
+      if (i->session == session_){
+        i->lastSTB = stb; 
+        uv_async_send(&(i->m_async));  
+      }
+    }
+    /* static void IoEvent (uv_poll_t* watcher, int status, int revents) {
       VisaEmitter *ve = static_cast<VisaEmitter*>(watcher->data);
-      ve->HandleIOEvent (status, revents);
+      ve->HandleHardwareEvent (status, revents);
     } */
   }
-  
-  
-  
-  
-  
-  
 }
