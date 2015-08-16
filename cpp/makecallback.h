@@ -28,6 +28,7 @@ using namespace v8;
 
 namespace raw {
   struct ListBaton;
+  struct OpenBaton;
   struct QueuedWrite;
   
   ViStatus write(ViSession instr1, const char* input);
@@ -50,12 +51,9 @@ namespace raw {
       
       static std::vector<VisaEmitter*> instances;
       std::string *address_;
-      
-      int Connect (void);
     
       static NAN_METHOD(New);
       static NAN_METHOD(Open);
-      static NAN_METHOD(Ping);
       static NAN_METHOD(Write);
       
       uv_async_t m_async;
@@ -67,6 +65,10 @@ namespace raw {
       static void StaticWrite(uv_work_t* req);
       void EIO_Write(QueuedWrite* baton);
       static void EIO_AfterWrite(uv_work_t* req);
+      
+      static void StaticOpen(uv_work_t* req);
+      void EIO_Open(OpenBaton* baton);
+      static void EIO_AfterOpen(uv_work_t* req);
   }; 
   
   struct ListResultItem {
@@ -79,6 +81,15 @@ namespace raw {
     public:
       NanCallback* callback;
       std::list<ListResultItem*> results;
+      char errorString[ERROR_STRING_SIZE];
+      VisaEmitter* obj;
+  };
+  
+  struct OpenBaton {
+    public:
+      char path[1024];
+      NanCallback* callback;
+      int result;
       char errorString[ERROR_STRING_SIZE];
       VisaEmitter* obj;
   };

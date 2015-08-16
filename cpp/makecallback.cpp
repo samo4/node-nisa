@@ -82,7 +82,6 @@ namespace raw {
     
     NODE_SET_PROTOTYPE_METHOD(tpl, "new", New);
     NODE_SET_PROTOTYPE_METHOD(tpl, "open", Open);
-    NODE_SET_PROTOTYPE_METHOD(tpl, "ping", Ping);
     NODE_SET_PROTOTYPE_METHOD(tpl, "write", Write);
   }
   
@@ -115,6 +114,33 @@ namespace raw {
   NAN_METHOD(VisaEmitter::Open) {
     NanScope();
     VisaEmitter* ve = ObjectWrap::Unwrap<VisaEmitter>(args.This());
+    uv_mutex_init(&write_queue_mutex);
+    QUEUE_INIT(&write_queue);
+    
+    if(!args[0]->IsFunction()) {
+      NanThrowTypeError("Argument must be a function");
+      NanReturnUndefined();
+    }
+    Local<Function> callback = args[0].As<Function>();
+    
+    OpenBaton* baton = new OpenBaton();
+    memset(baton, 0, sizeof(OpenBaton));
+    strcpy(baton->path, ve->address_->c_str());
+    baton->callback = new NanCallback(callback);
+    // baton->instr = &obj->instr;
+  
+    uv_work_t* req = new uv_work_t();
+    baton->obj = ve;
+    req->data = baton;
+    uv_queue_work(uv_default_loop(), req, VisaEmitter::StaticOpen, (uv_after_work_cb)VisaEmitter::EIO_AfterOpen);
+    
+    NanReturnUndefined();
+  }
+  
+  /*
+  NAN_METHOD(VisaEmitter::Open) {
+    NanScope();
+    VisaEmitter* ve = ObjectWrap::Unwrap<VisaEmitter>(args.This());
     
     if(!args[0]->IsFunction()) {
       NanThrowTypeError("Argument must be a function(err, res)");
@@ -143,7 +169,7 @@ namespace raw {
       };
       NanMakeCallback(args.This(), "emit", 2, argv);
     }
-  }
+  } */
   
   NAN_METHOD(VisaEmitter::Write) {
 		NanScope();
@@ -169,12 +195,10 @@ namespace raw {
 		
 		uv_work_t* req = new uv_work_t();
   	req->data = baton;
-    
-    
-		  
+  
 		QueuedWrite* queuedWrite = new QueuedWrite();
 		memset(queuedWrite, 0, sizeof(QueuedWrite));
-		// QUEUE_INIT(&queuedWrite->queue);
+		//QUEUE_INIT(&queuedWrite->queue);
 		queuedWrite->baton = baton;
 		queuedWrite->req.data = queuedWrite;
 		queuedWrite->obj = obj;
@@ -182,9 +206,6 @@ namespace raw {
 		//uv_mutex_lock(&write_queue_mutex);
 		//bool empty = QUEUE_EMPTY(&write_queue);
 		//QUEUE_INSERT_TAIL(&write_queue, &queuedWrite->queue);
-    
-    printf("viWrite\n");
-		
 		//if (empty) {
 			uv_queue_work(uv_default_loop(), &queuedWrite->req, VisaEmitter::StaticWrite, (uv_after_work_cb)VisaEmitter::EIO_AfterWrite);
 		//}
@@ -192,39 +213,6 @@ namespace raw {
 		
 		NanReturnUndefined();
 	}
-  
-  int VisaEmitter::Connect (void) {
-    if (this->isConnected)
-      return -1;
-    
-    ViStatus status;  
-    status = viOpenDefaultRM(&defaultRM);
-    status = viOpen(defaultRM, "GPIB0::11::INSTR", VI_NULL, VI_NULL, &session);
-    
-    if (status >= VI_SUCCESS) // VI_SUCCESS = 0 
-    {
-      m_async = uv_async_t();
-      m_async.data = this;    
-      uv_async_init(uv_default_loop(), &m_async, reinterpret_cast<uv_async_cb>(aCallback));      
-      this->isConnected = true;
-    } 
-    
-		ViBuf bufferHandle;
-		ViEventType etype;
-		ViEvent eventContext;
-    // this should be handled by options...
-		viGpibControlREN(session, VI_GPIB_REN_ASSERT);
-    /*
-		write(session, "X");
-		viClear(session);
-		write(session, "M1X"); // enable SRQ on various errors
-    */
-	
-		status = viInstallHandler(session, VI_EVENT_SERVICE_REQ, callback, bufferHandle);
-		status = viEnableEvent(session, VI_EVENT_SERVICE_REQ, VI_HNDLR, VI_NULL);    
-    
-    return status;
-  }
   
   void VisaEmitter::HandleIOEvent (int status, int srqStatus) {
     NanScope();

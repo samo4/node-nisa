@@ -36,21 +36,20 @@ obj.on('srq', function(a1) {
     }
 });
 
-obj.on('open', function (err, res) {
+obj.open(function (err, res) {
     if (err) {
-        console.log("err:  " + err);    
+        console.log("open err:  " + err);    
     } else {
         console.log("open....");
-		obj.write("M1X", function() {
-            obj.write("D9X", debugCallback);    
+		obj.write("M1X", function(err, res) {
+            if (err) {
+                    console.log("open err:  " + err);    
+                } else {
+                        obj.write("D9X", debugCallback);
+                }    
         }); 
-        
-        
-        obj.ping("pong");
     }
 });
-
-obj.open(debugCallback);
 
 setTimeout(function() {
     console.log("THE END");

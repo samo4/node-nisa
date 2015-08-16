@@ -3,7 +3,102 @@
 
 namespace raw {
 	
-	
+  /* OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN */
+  
+  void VisaEmitter::StaticOpen(uv_work_t* req) {
+    OpenBaton* data = static_cast<OpenBaton*>(req->data);
+    VisaEmitter* obj = static_cast<VisaEmitter*>(data->obj);
+    obj->EIO_Open(data);
+  } 
+  
+  void VisaEmitter::EIO_Open(OpenBaton* baton) {
+    char temp[QUERY_STRING_SIZE];
+    ViStatus status;
+    if (this->isConnected)
+    {
+      _snprintf(temp, sizeof(temp), "Already connected %s", baton->path);
+      ErrorCodeToString(temp, status, baton->errorString);
+      return;
+    }
+    status = viOpenDefaultRM(&defaultRM);
+    if (status < VI_SUCCESS) {
+      _snprintf(temp, sizeof(temp), "Opening RM for: %s", baton->path);
+      ErrorCodeToString(temp, status, baton->errorString);
+      return;
+    }
+    status = viOpen(defaultRM, baton->path, VI_NULL, VI_NULL, &session);
+    if (status < VI_SUCCESS) {
+      _snprintf(temp, sizeof(temp), "Opening session %s", baton->path);
+      ErrorCodeToString(temp, status, baton->errorString);
+      return;
+    }
+    status = viSetAttribute(session, VI_ATTR_TMO_VALUE, 5000);
+    if (status < VI_SUCCESS) {
+      _snprintf(temp, sizeof(temp), "Setting attributes on %s", baton->path);
+      ErrorCodeToString(temp, status, baton->errorString);
+      return;
+    }
+    // status = viSetAttribute(instr, VI_ATTR_SEND_END_EN, VI_TRUE);
+    // terminate reads on a carriage return  0x0a 0x0d
+    // LF (Line feed, '\n', 0x0A, 10 in decimal) 
+    // Carriage return, '\r', 0x0D, 13 in decimal
+    
+    // status = viSetAttribute(session, VI_ATTR_TERMCHAR, 0x0A);
+    //status = viSetAttribute(session, VI_ATTR_TERMCHAR_EN, VI_TRUE);
+    
+    if (status >= VI_SUCCESS) // TODO and if we're enabling events 
+    {
+      m_async = uv_async_t();
+      m_async.data = this;    
+      uv_async_init(uv_default_loop(), &m_async, reinterpret_cast<uv_async_cb>(aCallback));      
+    }
+    
+    viGpibControlREN(session, VI_GPIB_REN_ASSERT); // TODO!!!! this should be handled by options...
+    
+    ViBuf bufferHandle;
+		ViEventType etype;
+		ViEvent eventContext;
+		status = viInstallHandler(session, VI_EVENT_SERVICE_REQ, callback, bufferHandle);
+    if (status >= VI_SUCCESS) {
+		  status = viEnableEvent(session, VI_EVENT_SERVICE_REQ, VI_HNDLR, VI_NULL);
+    }  
+    if (status < VI_SUCCESS) {
+      _snprintf(temp, sizeof(temp), "Post AfterOpenSuccess session %s", baton->path);
+      ErrorCodeToString(temp, status, baton->errorString);
+      return;
+    }
+    this->isConnected = true;
+    printf("Opened %s\n", baton->path);  
+    baton->result = session;
+  }
+  
+  void VisaEmitter::EIO_AfterOpen(uv_work_t* req) {
+    NanScope();
+    OpenBaton* baton = static_cast<OpenBaton*>(req->data);
+  
+    v8::Handle<v8::Value> argv[2];
+    if(baton->errorString[0]) {
+      argv[0] = v8::Exception::Error(NanNew<v8::String>(baton->errorString));
+      argv[1] = NanUndefined();
+    } else {
+      argv[0] = NanUndefined();
+      argv[1] = NanNew<v8::Int32>(baton->result);
+    }
+  
+    baton->callback->Call(2, argv);
+    if(!baton->errorString[0]) {
+      Handle<Value> argv[2] = {
+        NanNew<String>("open"), 
+        NanNew<v8::Int32>(baton->result)
+      };
+    }
+    
+    delete baton->callback;
+    delete baton;
+    delete req;
+  }
+  
+	/* WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE  */
 	void VisaEmitter::StaticWrite(uv_work_t* req) {
 		QueuedWrite* data = static_cast<QueuedWrite*>(req->data);	
 		VisaEmitter* obj = static_cast<VisaEmitter*>(data->obj);
@@ -12,28 +107,23 @@ namespace raw {
 	
 	void VisaEmitter::EIO_Write(QueuedWrite* queuedWrite) {
 		WriteBaton* data = static_cast<WriteBaton*>(queuedWrite->baton);
-    
-		if (!sizeof(data->command) || !this->isConnected)
-			return;
-		
-		char temp[QUERY_STRING_SIZE];
-		memset(temp, 0, sizeof(temp));
-		ViStatus status;
-		if (session < 1) {
-			ErrorCodeToString("not open", 11, data->errorString);
+		if (!sizeof(data->command) || !this->isConnected || session < 1) {
+			ErrorCodeToString("not connected or bad empty command", 11, data->errorString);
 			return;
 		}
-		
+      
+		char temp[QUERY_STRING_SIZE];
+		memset(temp, 0, sizeof(temp));
 		ViInt32 rdBufferSize = sizeof(temp);
 		ViUInt32 returnCount;
-		
-		status = viWrite(session, (ViBuf)data->command, strlen(data->command), &returnCount);
+		ViStatus status = viWrite(session, (ViBuf)data->command, strlen(data->command), &returnCount);
 		if ((status < VI_SUCCESS)) {
+      printf("bad write\n");
 			_snprintf(temp, sizeof(temp), "%d viWrite, query: %s string length: %d", session, data->command, strlen(data->command));
 			ErrorCodeToString(temp, status, data->errorString);
 			return;
 		}
-
+    printf("viWrite: %s\n", data->command);
 		data->result[0] = 0;
 	}
 	
@@ -53,24 +143,10 @@ namespace raw {
 		baton->callback->Call(2, argv);
 		
 		delete baton->callback;
-  		delete baton;
+    delete baton;
 	}
 	
-	NAN_METHOD(VisaEmitter::Ping) {
-		NanScope();
-		Local<Value> argv[2] = {
-			NanNew<String>("ping"),  // event name
-			args[0]
-		};
-		
-		NanMakeCallback(args.This(), "emit", 2, argv);
-		//printf("let's make an explosion\n");
-		/*
-		write(instr1, "D9X");*/
-	
-		//NanMakeCallback(args.This(), "emit", 2, argv);
-		NanReturnUndefined();
-	}
+  /* CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK  */
 	
 	void VisaEmitter::aCallback(uv_async_t *handle, int status) {
     if (!handle->data) 
@@ -110,20 +186,7 @@ namespace raw {
     
     // perhaps we should call this sooner?
     
-  }
-  
-  ViStatus write(ViSession session, const char* input)
-  {
-    ViUInt32 writeCount;
-    if (sizeof(input) > 4) {
-      throw std::invalid_argument( "viWrite input string too long" );
-    }
-    
-    char temp[500];
-    _snprintf_s(temp, sizeof(temp), input);
-    return viWrite(session, (ViBuf)temp, (ViUInt32)strlen(temp), &writeCount);
-  }
-    
+  } 
   
   ViStatus _VI_FUNCH callback(ViSession vi, ViEventType etype, ViEvent eventContext, ViAddr userHandle)
   {
@@ -147,6 +210,20 @@ namespace raw {
       // printf("SQR :0x%02x\n", stb); /// yes, it's mine :-) 
     }
     return VI_SUCCESS;
+  }
+  
+  /* LOW LEVEL LOW LEVEL LOW LEVEL LOW LEVEL LOW LEVEL LOW LEVEL LOW LEVEL LOW LEVEL LOW LEVEL LOW LEVEL LOW LEVEL LOW LEVEL LOW LEVEL */
+  
+  ViStatus write(ViSession session, const char* input)
+  {
+    ViUInt32 writeCount;
+    if (sizeof(input) > 4) {
+      throw std::invalid_argument( "viWrite input string too long" );
+    }
+    
+    char temp[500];
+    _snprintf_s(temp, sizeof(temp), input);
+    return viWrite(session, (ViBuf)temp, (ViUInt32)strlen(temp), &writeCount);
   }
   
   void ErrorCodeToString(const char* prefix, int errorCode, char *errorStr) {
