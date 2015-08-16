@@ -55,25 +55,24 @@ namespace raw {
   
 
   uv_loop_t *loop;
-  uv_async_t* async;
+  // uv_async_t* async;
   
   
   typedef struct {
     uint16_t stb;
   } vi_callback_result_t;
   
-  
+  std::set<VisaEmitter const *> VisaEmitter::instances;
   
   ViStatus write(ViSession instr1, const char* input);
-  ViStatus _VI_FUNCH callback(ViSession vi, ViEventType etype, ViEvent eventContext, ViAddr userHandle);
-  
-  
-   
+  ViStatus _VI_FUNCH callback(ViSession vi, ViEventType etype, ViEvent eventContext, ViAddr userHandle); 
   
   VisaEmitter::VisaEmitter() {
+    instances.insert(this);
   }
   
   VisaEmitter::~VisaEmitter() {
+    instances.erase(this);
   }
   
   void VisaEmitter::Init() {
@@ -107,23 +106,42 @@ namespace raw {
       NanNew<String>("event"),  // event name
       args[0]
     };
-  
+    
     NanMakeCallback(args.This(), "emit", 2, argv);
     
+    // let's make an explosion
+    
+    ViSession defaultRM;
+    ViSession instr1;
+    ViStatus status;
+    ViBuf bufferHandle;
+    ViEventType etype;
+    ViEvent eventContext;
+    
+    status = viOpenDefaultRM(&defaultRM);
+    status = viOpen(defaultRM, "GPIB0::11::INSTR", VI_NULL, VI_NULL, &instr1);
+    viGpibControlREN(instr1, VI_GPIB_REN_ASSERT);
+    write(instr1, "X");
+    viClear(instr1);
+    write(instr1, "M1X"); // enable SRQ on various errors
+  
+    status = viInstallHandler(instr1, VI_EVENT_SERVICE_REQ, callback, bufferHandle);
+	  status = viEnableEvent(instr1, VI_EVENT_SERVICE_REQ, VI_HNDLR, VI_NULL);
+  
+  
+    write(instr1, "D9X");
+  
+    NanMakeCallback(args.This(), "emit", 2, argv);
     NanReturnUndefined();
   }
   
   int VisaEmitter::Connect (void) {
     if (this->poll_initialised_)
       return 0;
-     
-    async = (uv_async_t*) malloc(sizeof(*async));
-    
-    if (async->data == this) return -1;
-    async->data = this;
-    
-    uv_async_init(uv_default_loop(), &async, (uv_async_cb) async_propagate);
-      
+
+    m_async = uv_async_t();
+    m_async.data = this;    
+    uv_async_init(uv_default_loop(), &m_async, (uv_async_cb) async_propagate);      
     this->poll_initialised_ = true;
 	
     return 0;
@@ -131,6 +149,9 @@ namespace raw {
   
   void VisaEmitter::HandleIOEvent (int status, int srqStatus) {
     NanScope();
+  
+  
+    printf("HandleIOEvent: %d\n", srqStatus);
   
     if (status) {
       Local<Value> emit = NanObjectWrapHandle(this)->Get (NanNew<String>("emit"));
@@ -154,12 +175,23 @@ namespace raw {
     }
   }
   
+  void VisaEmitter::DispatchEventToAllInstances(int stb)
+  {
+    for(auto i : instances) {
+      printf("instance\n");
+      
+      VisaEmitter * ve = const_cast<VisaEmitter *>(i);
+      //VisaEmitter *ve = const_cast<VisaEmitter*>(i);
+      ve->HandleIOEvent(0, stb);
+    }
+  }
+  
   static void IoEvent (uv_poll_t* watcher, int status, int revents) {
     VisaEmitter *ve = static_cast<VisaEmitter*>(watcher->data);
     ve->HandleIOEvent (status, revents);
   }
   
-  void async_propagate(uv_async_t *async, int status) {
+  void VisaEmitter::async_propagate(uv_async_t *async, int status) {
     if (!async->data) 
       return;
     
@@ -200,12 +232,14 @@ namespace raw {
     status = viReadSTB(vi, &stb);
     if ((status >= VI_SUCCESS) && (stb & 0x40))
     {   
+      printf("callback: %d\n", stb);
+      VisaEmitter::DispatchEventToAllInstances(stb);
       // we might need uv_mutex_t
-      vi_callback_result_t* data = (vi_callback_result_t*)malloc (sizeof (vi_callback_result_t));
-      data->stb = stb;
-      async->data = (void*) data;
+      //vi_callback_result_t* data = (vi_callback_result_t*)malloc (sizeof (vi_callback_result_t));
+      //data->stb = stb;
+      //async->data = (void*) data;
       //async->session = vi; // I think we'll need this later to establish exactly where the event came from.
-      uv_async_send(async);
+      //uv_async_send(async);
       
       // async.data = stb; who cares about the stb.. you can read it later.
       //uv_async_send(&async);	

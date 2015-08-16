@@ -14,6 +14,7 @@
 
 #include <nan.h>
 #include <visa.h>
+#include <set>
 
 using namespace v8;
 
@@ -24,17 +25,24 @@ namespace raw {
     public:
       void HandleIOEvent (int status, int revents);
       static void Init();
+      void DispatchEvent(int stb);
+      static void DispatchEventToAllInstances(int stb);
     private:
       VisaEmitter();
       ~VisaEmitter();
+      static std::set<VisaEmitter const *> instances;
       
       int Connect (void);
     
       static NAN_METHOD(New);
       static NAN_METHOD(Ping);
       
+      uv_async_t m_async;
+      
       uv_poll_t *poll_watcher_;
       bool poll_initialised_;
+      
+      static void async_propagate(uv_async_t *async, int status);
   }; 
 
   static void IoEvent (uv_poll_t* watcher, int status, int revents);
