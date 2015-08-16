@@ -10,8 +10,15 @@ inherits(raw.VisaEmitter, EventEmitter);
 
 var obj = new raw.VisaEmitter();
 
-obj.on('event', function(e) {
-    console.log("Event fired: " + e);
+obj.on('srq', function(a1) {
+    if (a1)
+    {
+        console.log("SRQ:  " + a1);    
+    }
+    else
+    {
+        console.log("Nothing");    
+    }
 });
 
 obj.ping("pong");

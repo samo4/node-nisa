@@ -33,7 +33,7 @@ namespace raw {
     private:
       VisaEmitter();
       ~VisaEmitter();
-      //static std::set<VisaEmitter const *> instances;
+      
       static std::vector<VisaEmitter*> instances;
       
       int Connect (void);
@@ -43,14 +43,10 @@ namespace raw {
       
       uv_async_t m_async;
       
-      uv_poll_t *poll_watcher_;
       bool poll_initialised_;
       
-      static void async_propagate(uv_async_t *async, int status);
+      static void aCallback(uv_async_t *async, int status);
   }; 
-
-  static void IoEvent (uv_poll_t* watcher, int status, int revents);
-
 }; /* namespace raw */
 
 

@@ -50,13 +50,7 @@ namespace raw {
 	    target->Set(NanNew<String>("VisaEmitter"), constructor);
   } 
   
-  NODE_MODULE(raw, InitAll)
-  
-  
-
-  uv_loop_t *loop;
-  // uv_async_t* async;
-  
+  NODE_MODULE(raw, InitAll)  
   
   typedef struct {
     uint16_t stb;
@@ -75,7 +69,10 @@ namespace raw {
   }
   
   VisaEmitter::~VisaEmitter() {
+    //if (poll_initialised_)
+      
     instances[0] = NULL;
+    
     //instances.erase(this);
   }
   
@@ -95,7 +92,7 @@ namespace raw {
     ve->poll_initialised_ = false;
     int viStatus;
     viStatus = ve->Connect();
-    if (viStatus != 0) {
+    if (viStatus) {
       NanThrowError(raw_strerror (viStatus));
       NanReturnUndefined();
     }
@@ -140,22 +137,18 @@ namespace raw {
   
   int VisaEmitter::Connect (void) {
     if (this->poll_initialised_)
-      return 0;
+      return 1;
 
     m_async = uv_async_t();
     m_async.data = this;    
-    uv_async_init(uv_default_loop(), &m_async, (uv_async_cb) async_propagate);      
+    uv_async_init(uv_default_loop(), &m_async, reinterpret_cast<uv_async_cb>(aCallback));      
     this->poll_initialised_ = true;
 	
-    return 0;
+    return 0; //OK
   }
   
   void VisaEmitter::HandleIOEvent (int status, int srqStatus) {
-    //  NanScope();
-    Handle<Object> globalObj = NanGetCurrentContext()->Global();
-  
-    printf("HandleIOEvent: %d, %d\n", status, srqStatus);
-  
+    NanScope();
     if (status) {
       Local<Value> emit = NanObjectWrapHandle(this)->Get (NanNew<String>("emit"));
       Local<Function> cb = emit.As<Function> ();
@@ -172,40 +165,40 @@ namespace raw {
       Local<Value> emit = NanObjectWrapHandle(this)->Get (NanNew<String>("emit"));
       Local<Function> cb = emit.As<Function> ();
   
-      Local<Value> args[1];
-      args[0] = NanNew<Integer>(srqStatus);
-      cb->Call (NanObjectWrapHandle(this), 1, args);
+      const int argc = 2;
+      Local<Value> args[argc];
+      args[0] = NanNew<String>("srq");
+      args[1] = NanNew<Integer>(srqStatus);
+      cb->Call (NanObjectWrapHandle(this), argc, args);
     }
-    
-    printf("HandleIOEvent: done\n");
+    printf("HandleIOEvent: %d, %d\n", status, srqStatus);
   }
-  /*
-  static VisaEmitter* VisaEmitter::get_instance_by_id(int i){
-      //TODO: Add bounds checking here.
-      //return instance.get(i);
-    } */
   
   void VisaEmitter::DispatchEventToAllInstances(int stb)
   {
-    instances.at(0)->HandleIOEvent(0, stb);
+    uv_async_send(&(instances.at(0)->m_async));
+    
     /*
-    for(auto i : instances) {
-      printf("instance\n");
-      
-      VisaEmitter * ve = const_cast<VisaEmitter *>(i);
-      //VisaEmitter *ve = const_cast<VisaEmitter*>(i);
-      ve->HandleIOEvent(0, stb);
-    }*/
+    for(auto i : instances) 
+    
+    static void IoEvent (uv_poll_t* watcher, int status, int revents) {
+      VisaEmitter *ve = static_cast<VisaEmitter*>(watcher->data);
+      ve->HandleIOEvent (status, revents);
+    } */
   }
   
-  static void IoEvent (uv_poll_t* watcher, int status, int revents) {
-    VisaEmitter *ve = static_cast<VisaEmitter*>(watcher->data);
-    ve->HandleIOEvent (status, revents);
-  }
   
-  void VisaEmitter::async_propagate(uv_async_t *async, int status) {
-    if (!async->data) 
+  
+  void VisaEmitter::aCallback(uv_async_t *handle, int status) {
+    if (!handle->data) 
       return;
+    
+    VisaEmitter* async = static_cast<VisaEmitter*>(handle->data);
+    async->HandleIOEvent (0, 12);
+    // if we call this, then no more events are 
+    // uv_close((uv_handle_t*) async, NULL); ??
+    printf("async.HandleIOEvent\n");
+    return;
     
     NanScope();
     
@@ -213,8 +206,8 @@ namespace raw {
   // v8::Local<v8::Function> cb = emit.As<v8::Function>();
     
     
-    Handle<Object> globalObj = NanGetCurrentContext()->Global();
-    vi_callback_result_t* data = (vi_callback_result_t*) async->data;
+    //Handle<Object> globalObj = NanGetCurrentContext()->Global();
+    //vi_callback_result_t* data = (vi_callback_result_t*) async->data;
     
     /*
     const unsigned argc = 2;
@@ -233,7 +226,7 @@ namespace raw {
     //NanMakeCallback(globalObj, cb, argc, argv);
     
     // perhaps we should call this sooner?
-    uv_close((uv_handle_t*) async, NULL);
+    
   }
   
   ViStatus _VI_FUNCH callback(ViSession vi, ViEventType etype, ViEvent eventContext, ViAddr userHandle)
