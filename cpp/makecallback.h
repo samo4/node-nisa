@@ -14,7 +14,10 @@
 
 #include <nan.h>
 #include <visa.h>
-#include <set>
+//#include <set>
+#include <vector>
+
+#define MAX_INSTANCES 50
 
 using namespace v8;
 
@@ -30,7 +33,8 @@ namespace raw {
     private:
       VisaEmitter();
       ~VisaEmitter();
-      static std::set<VisaEmitter const *> instances;
+      //static std::set<VisaEmitter const *> instances;
+      static std::vector<VisaEmitter*> instances;
       
       int Connect (void);
     

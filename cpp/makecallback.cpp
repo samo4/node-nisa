@@ -62,17 +62,21 @@ namespace raw {
     uint16_t stb;
   } vi_callback_result_t;
   
-  std::set<VisaEmitter const *> VisaEmitter::instances;
+  //std::set<VisaEmitter const *> VisaEmitter::instances;
+  //std::vector<VisaEmitter*> VisaEmitter::instances;
+  std::vector<VisaEmitter*> VisaEmitter::instances = std::vector<VisaEmitter*>();
   
   ViStatus write(ViSession instr1, const char* input);
   ViStatus _VI_FUNCH callback(ViSession vi, ViEventType etype, ViEvent eventContext, ViAddr userHandle); 
   
   VisaEmitter::VisaEmitter() {
-    instances.insert(this);
+    instances.push_back(this); 
+    //instances.insert(this);
   }
   
   VisaEmitter::~VisaEmitter() {
-    instances.erase(this);
+    instances[0] = NULL;
+    //instances.erase(this);
   }
   
   void VisaEmitter::Init() {
@@ -95,7 +99,7 @@ namespace raw {
       NanThrowError(raw_strerror (viStatus));
       NanReturnUndefined();
     }
-    
+    printf("VisaEmitter::New\n");
     ve->Wrap (args.This ());
 	  NanReturnThis();
   }
@@ -108,8 +112,7 @@ namespace raw {
     };
     
     NanMakeCallback(args.This(), "emit", 2, argv);
-    
-    // let's make an explosion
+    printf("let's make an explosion\n");
     
     ViSession defaultRM;
     ViSession instr1;
@@ -131,7 +134,7 @@ namespace raw {
   
     write(instr1, "D9X");
   
-    NanMakeCallback(args.This(), "emit", 2, argv);
+    //NanMakeCallback(args.This(), "emit", 2, argv);
     NanReturnUndefined();
   }
   
@@ -148,10 +151,10 @@ namespace raw {
   }
   
   void VisaEmitter::HandleIOEvent (int status, int srqStatus) {
-    NanScope();
+    //  NanScope();
+    Handle<Object> globalObj = NanGetCurrentContext()->Global();
   
-  
-    printf("HandleIOEvent: %d\n", srqStatus);
+    printf("HandleIOEvent: %d, %d\n", status, srqStatus);
   
     if (status) {
       Local<Value> emit = NanObjectWrapHandle(this)->Get (NanNew<String>("emit"));
@@ -173,17 +176,26 @@ namespace raw {
       args[0] = NanNew<Integer>(srqStatus);
       cb->Call (NanObjectWrapHandle(this), 1, args);
     }
+    
+    printf("HandleIOEvent: done\n");
   }
+  /*
+  static VisaEmitter* VisaEmitter::get_instance_by_id(int i){
+      //TODO: Add bounds checking here.
+      //return instance.get(i);
+    } */
   
   void VisaEmitter::DispatchEventToAllInstances(int stb)
   {
+    instances.at(0)->HandleIOEvent(0, stb);
+    /*
     for(auto i : instances) {
       printf("instance\n");
       
       VisaEmitter * ve = const_cast<VisaEmitter *>(i);
       //VisaEmitter *ve = const_cast<VisaEmitter*>(i);
       ve->HandleIOEvent(0, stb);
-    }
+    }*/
   }
   
   static void IoEvent (uv_poll_t* watcher, int status, int revents) {
