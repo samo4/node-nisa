@@ -1,9 +1,5 @@
-
-
 #include "makecallback.h"
-
 #include <uv.h>
-
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -36,12 +32,22 @@ const char* raw_strerror (int code) {
 }
 
 
+  
+
 namespace raw {
   using namespace v8;
   
-  void async_propagate(uv_async_t *async);
-  
+  uv_mutex_t write_queue_mutex;
+  QUEUE write_queue;
+
+  ViSession VisaEmitter::defaultRM;
   static Persistent<FunctionTemplate> _constructor;
+  std::vector<VisaEmitter*> VisaEmitter::instances = std::vector<VisaEmitter*>();
+
+  /*  typedef struct {
+    uint16_t stb;
+  } vi_callback_result_t; */
+  
   void InitAll (Handle<Object> target) {
     
       VisaEmitter::Init();
@@ -52,27 +58,19 @@ namespace raw {
   
   NODE_MODULE(raw, InitAll)  
   
-  typedef struct {
-    uint16_t stb;
-  } vi_callback_result_t;
-  
-  //std::set<VisaEmitter const *> VisaEmitter::instances;
-  //std::vector<VisaEmitter*> VisaEmitter::instances;
-  std::vector<VisaEmitter*> VisaEmitter::instances = std::vector<VisaEmitter*>();
-  
-  ViStatus write(ViSession instr1, const char* input);
-  ViStatus _VI_FUNCH callback(ViSession vi, ViEventType etype, ViEvent eventContext, ViAddr userHandle); 
-  
-  VisaEmitter::VisaEmitter() {
+  VisaEmitter::VisaEmitter(std::string s) {
+    address_ = new std::string(s);
+	  //uv_async_init(uv_default_loop(), &async_, print_progress);	
+	  //this->poll_initialised_ = true;
     instances.push_back(this); 
-    //instances.insert(this);
   }
   
   VisaEmitter::~VisaEmitter() {
-    //if (poll_initialised_)
+    delete address_;
+    if (isConnected)
+      viClose(session);
       
     instances[0] = NULL;
-    
     //instances.erase(this);
   }
   
@@ -83,68 +81,149 @@ namespace raw {
     tpl->InstanceTemplate()->SetInternalFieldCount(1);
     
     NODE_SET_PROTOTYPE_METHOD(tpl, "new", New);
+    NODE_SET_PROTOTYPE_METHOD(tpl, "open", Open);
     NODE_SET_PROTOTYPE_METHOD(tpl, "ping", Ping);
+    NODE_SET_PROTOTYPE_METHOD(tpl, "write", Write);
   }
   
   NAN_METHOD(VisaEmitter::New) {
     NanScope();
-	  VisaEmitter* ve = new VisaEmitter ();
-    ve->poll_initialised_ = false;
-    int viStatus;
-    viStatus = ve->Connect();
-    if (viStatus) {
-      NanThrowError(raw_strerror (viStatus));
+    if(!args[0]->IsString()) {
+      NanThrowTypeError("First argument must be a string with VISA address. Something like: GPIB0::11::INSTR");
       NanReturnUndefined();
     }
-    printf("VisaEmitter::New\n");
-    ve->Wrap (args.This ());
-	  NanReturnThis();
+    String::Utf8Value path(args[0]->ToString());
+  
+    if (args.IsConstructCall()) {
+      String::Utf8Value str(args[0]->ToString());
+      std::string s(*str);
+      VisaEmitter* ve = new VisaEmitter(s);
+      ve->isConnected = false;
+      ve->Wrap(args.This());
+      //return args.This(); //return scope.Close(args.This());
+      NanReturnThis();
+    } else {
+      throw std::invalid_argument( "not sure if I know why this is good.. best if we throw exception for the moment" );
+      /*const int argc = 2;
+      Handle<Value> argv[argc];
+      argv[0] = args[0]->ToString();
+      argv[1] = args[1]->ToObject();
+      return scope.Close(constructor->NewInstance(argc, argv));*/
+    }   
   }
   
-  NAN_METHOD(VisaEmitter::Ping) {
+  NAN_METHOD(VisaEmitter::Open) {
     NanScope();
-    Local<Value> argv[2] = {
-      NanNew<String>("event"),  // event name
-      args[0]
-    };
+    VisaEmitter* ve = ObjectWrap::Unwrap<VisaEmitter>(args.This());
     
-    NanMakeCallback(args.This(), "emit", 2, argv);
-    printf("let's make an explosion\n");
+    if(!args[0]->IsFunction()) {
+      NanThrowTypeError("Argument must be a function(err, res)");
+      NanReturnUndefined();
+    }
+    Local<Function> callback = args[0].As<Function>();
     
-    ViSession defaultRM;
-    ViSession instr1;
-    ViStatus status;
-    ViBuf bufferHandle;
-    ViEventType etype;
-    ViEvent eventContext;
+    Handle<Value> argv[2];
+    int viStatus = ve->Connect();
+    if (viStatus != VI_SUCCESS) {
+      argv[0] = v8::Exception::Error(NanNew<v8::String>(raw_strerror (viStatus)));
+      argv[1] = NanUndefined();
+    }
+    else {
+      argv[0] = NanUndefined();
+      argv[1] = NanNew<v8::Int32>(0);
+    }
     
-    status = viOpenDefaultRM(&defaultRM);
-    status = viOpen(defaultRM, "GPIB0::11::INSTR", VI_NULL, VI_NULL, &instr1);
-    viGpibControlREN(instr1, VI_GPIB_REN_ASSERT);
-    write(instr1, "X");
-    viClear(instr1);
-    write(instr1, "M1X"); // enable SRQ on various errors
-  
-    status = viInstallHandler(instr1, VI_EVENT_SERVICE_REQ, callback, bufferHandle);
-	  status = viEnableEvent(instr1, VI_EVENT_SERVICE_REQ, VI_HNDLR, VI_NULL);
-  
-  
-    write(instr1, "D9X");
-  
-    //NanMakeCallback(args.This(), "emit", 2, argv);
-    NanReturnUndefined();
+    // someday, this should be async.. u
+    (new NanCallback(callback))->Call(2, argv);
+    
+    if (viStatus == VI_SUCCESS) {
+      Handle<Value> argv[2] = {
+        NanNew<v8::String>("open"), 
+        NanNew<v8::Int32>(0)
+      };
+      NanMakeCallback(args.This(), "emit", 2, argv);
+    }
   }
+  
+  NAN_METHOD(VisaEmitter::Write) {
+		NanScope();
+		VisaEmitter* obj = ObjectWrap::Unwrap<VisaEmitter>(args.This());
+		
+		if(!args[0]->IsString()) {
+			NanThrowTypeError("First argument must be a string");
+			NanReturnUndefined();
+		}
+		String::Utf8Value cmd(args[0]->ToString());
+		
+		if(!args[1]->IsFunction()) {
+			NanThrowTypeError("Second argument must be a function: err, res");
+			NanReturnUndefined();
+		}
+		Local<Function> callback = args[1].As<Function>();
+		
+		WriteBaton* baton = new WriteBaton();
+		memset(baton, 0, sizeof(WriteBaton));
+		strcpy(baton->errorString, "");
+		strcpy(baton->command, *cmd);
+		baton->callback = new NanCallback(callback);
+		
+		uv_work_t* req = new uv_work_t();
+  	req->data = baton;
+    
+    
+		  
+		QueuedWrite* queuedWrite = new QueuedWrite();
+		memset(queuedWrite, 0, sizeof(QueuedWrite));
+		// QUEUE_INIT(&queuedWrite->queue);
+		queuedWrite->baton = baton;
+		queuedWrite->req.data = queuedWrite;
+		queuedWrite->obj = obj;
+
+		//uv_mutex_lock(&write_queue_mutex);
+		//bool empty = QUEUE_EMPTY(&write_queue);
+		//QUEUE_INSERT_TAIL(&write_queue, &queuedWrite->queue);
+    
+    printf("viWrite\n");
+		
+		//if (empty) {
+			uv_queue_work(uv_default_loop(), &queuedWrite->req, VisaEmitter::StaticWrite, (uv_after_work_cb)VisaEmitter::EIO_AfterWrite);
+		//}
+		//uv_mutex_unlock(&write_queue_mutex);
+		
+		NanReturnUndefined();
+	}
   
   int VisaEmitter::Connect (void) {
-    if (this->poll_initialised_)
-      return 1;
-
-    m_async = uv_async_t();
-    m_async.data = this;    
-    uv_async_init(uv_default_loop(), &m_async, reinterpret_cast<uv_async_cb>(aCallback));      
-    this->poll_initialised_ = true;
+    if (this->isConnected)
+      return -1;
+    
+    ViStatus status;  
+    status = viOpenDefaultRM(&defaultRM);
+    status = viOpen(defaultRM, "GPIB0::11::INSTR", VI_NULL, VI_NULL, &session);
+    
+    if (status >= VI_SUCCESS) // VI_SUCCESS = 0 
+    {
+      m_async = uv_async_t();
+      m_async.data = this;    
+      uv_async_init(uv_default_loop(), &m_async, reinterpret_cast<uv_async_cb>(aCallback));      
+      this->isConnected = true;
+    } 
+    
+		ViBuf bufferHandle;
+		ViEventType etype;
+		ViEvent eventContext;
+    // this should be handled by options...
+		viGpibControlREN(session, VI_GPIB_REN_ASSERT);
+    /*
+		write(session, "X");
+		viClear(session);
+		write(session, "M1X"); // enable SRQ on various errors
+    */
 	
-    return 0; //OK
+		status = viInstallHandler(session, VI_EVENT_SERVICE_REQ, callback, bufferHandle);
+		status = viEnableEvent(session, VI_EVENT_SERVICE_REQ, VI_HNDLR, VI_NULL);    
+    
+    return status;
   }
   
   void VisaEmitter::HandleIOEvent (int status, int srqStatus) {
@@ -189,76 +268,7 @@ namespace raw {
   
   
   
-  void VisaEmitter::aCallback(uv_async_t *handle, int status) {
-    if (!handle->data) 
-      return;
-    
-    VisaEmitter* async = static_cast<VisaEmitter*>(handle->data);
-    async->HandleIOEvent (0, 12);
-    // if we call this, then no more events are 
-    // uv_close((uv_handle_t*) async, NULL); ??
-    printf("async.HandleIOEvent\n");
-    return;
-    
-    NanScope();
-    
-  // v8::Local<v8::Value> emit = this->handle()->Get(Nan::New<v8::String>("emit"));
-  // v8::Local<v8::Function> cb = emit.As<v8::Function>();
-    
-    
-    //Handle<Object> globalObj = NanGetCurrentContext()->Global();
-    //vi_callback_result_t* data = (vi_callback_result_t*) async->data;
-    
-    /*
-    const unsigned argc = 2;
-    v8::Local<v8::Value> argv[argc] = {
-        NanNew<string>("event"),   // event name: change to SRQ
-        NanNew(data->stb)				  // result?
-    };*/
-    //When to use MakeCallBack: https://github.com/nodejs/nan/issues/284
-  
-    //Isolate* isolate = v8::Isolate::GetCurrent();
-    //Local<String> emit_symbol = String::NewFromUtf8(isolate, "emit");
-    //Local<Function> cb = globalObj->Get(emit_symbol).As<v8::Function>();
-    
-    ////v8::Local<v8::Value> argv[argc] = { v8::String::NewFromUtf8(isolate, "hello world") };
-    ////cb->Call(globalObj, argc, argv);
-    //NanMakeCallback(globalObj, cb, argc, argv);
-    
-    // perhaps we should call this sooner?
-    
-  }
-  
-  ViStatus _VI_FUNCH callback(ViSession vi, ViEventType etype, ViEvent eventContext, ViAddr userHandle)
-  {
-    ViJobId jobID;
-    ViStatus status;
-    ViUInt16 stb;
-    status = viReadSTB(vi, &stb);
-    if ((status >= VI_SUCCESS) && (stb & 0x40))
-    {   
-      printf("callback: %d\n", stb);
-      VisaEmitter::DispatchEventToAllInstances(stb);
-      // we might need uv_mutex_t
-      //vi_callback_result_t* data = (vi_callback_result_t*)malloc (sizeof (vi_callback_result_t));
-      //data->stb = stb;
-      //async->data = (void*) data;
-      //async->session = vi; // I think we'll need this later to establish exactly where the event came from.
-      //uv_async_send(async);
-      
-      // async.data = stb; who cares about the stb.. you can read it later.
-      //uv_async_send(&async);	
-      // printf("SQR :0x%02x\n", stb); /// yes, it's mine :-) 
-    }
-    return VI_SUCCESS;
-  }
   
   
-  ViStatus write(ViSession instr1, const char* input)
-  {
-    ViUInt32 writeCount;
-    char temp[100];
-    _snprintf_s(temp, sizeof(temp), input);
-    return viWrite(instr1, (ViBuf)temp, (ViUInt32)strlen(temp), &writeCount);
-  }
+  
 }

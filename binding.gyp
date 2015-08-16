@@ -10,7 +10,7 @@
 	"targets": [
 	{
         "target_name" : "makecallback"
-      , "sources"     : [ "cpp/makecallback.cpp" ]
+      , "sources"     : [ "cpp/makecallback.cpp", "cpp/visa.cpp" ]
       , 'include_dirs': [
               'C:\Program Files\IVI Foundation\VISA\Win64\Include'
             ]

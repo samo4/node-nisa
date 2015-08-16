@@ -10,43 +10,95 @@
 
 // and this one when we're ready for 2.x https://github.com/nodejs/nan/issues/376#issuecomment-120838432
 
-
-
 #include <nan.h>
 #include <visa.h>
 //#include <set>
 #include <vector>
+#include <list>
+
+#include "queue.h"
 
 #define MAX_INSTANCES 50
+#define ERROR_STRING_SIZE 1024
+#define QUERY_STRING_SIZE 40240
 
 using namespace v8;
 
-namespace raw {
 
-// rename to VisaEmitterWrap?
+
+namespace raw {
+  struct ListBaton;
+  struct QueuedWrite;
+  
+  ViStatus write(ViSession instr1, const char* input);
+  ViStatus _VI_FUNCH callback(ViSession vi, ViEventType etype, ViEvent eventContext, ViAddr userHandle);
+  void ErrorCodeToString(const char* prefix, int errorCode, char *errorStr);
+  
   class VisaEmitter : public node::ObjectWrap {
     public:
+      static ViSession defaultRM;
+      ViSession session;
+      
       void HandleIOEvent (int status, int revents);
       static void Init();
       void DispatchEvent(int stb);
       static void DispatchEventToAllInstances(int stb);
     private:
-      VisaEmitter();
+    
+      explicit VisaEmitter  (std::string s = "");
       ~VisaEmitter();
       
       static std::vector<VisaEmitter*> instances;
+      std::string *address_;
       
       int Connect (void);
     
       static NAN_METHOD(New);
+      static NAN_METHOD(Open);
       static NAN_METHOD(Ping);
+      static NAN_METHOD(Write);
       
       uv_async_t m_async;
       
-      bool poll_initialised_;
+      bool isConnected;
       
       static void aCallback(uv_async_t *async, int status);
+      
+      static void StaticWrite(uv_work_t* req);
+      void EIO_Write(QueuedWrite* baton);
+      static void EIO_AfterWrite(uv_work_t* req);
   }; 
+  
+  struct ListResultItem {
+    public:
+      std::string path;
+      std::string idn;
+  };
+  
+  struct ListBaton {
+    public:
+      NanCallback* callback;
+      std::list<ListResultItem*> results;
+      char errorString[ERROR_STRING_SIZE];
+      VisaEmitter* obj;
+  };
+  
+  struct WriteBaton {
+    public:
+      char command[QUERY_STRING_SIZE];
+      NanCallback* callback;
+      VisaEmitter* obj;
+      char result[QUERY_STRING_SIZE];
+      char errorString[ERROR_STRING_SIZE];
+  };
+  
+  struct QueuedWrite {
+    public:
+      uv_work_t req;
+      QUEUE queue;
+      WriteBaton* baton;
+      VisaEmitter* obj;
+  };
 }; /* namespace raw */
 
 
