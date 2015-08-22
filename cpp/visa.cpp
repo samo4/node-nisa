@@ -117,12 +117,10 @@ namespace raw {
 		ViUInt32 returnCount;
 		ViStatus status = viWrite(session, (ViBuf)data->command, strlen(data->command), &returnCount);
 		if ((status < VI_SUCCESS)) {
-      printf("bad write\n");
 			_snprintf(temp, sizeof(temp), "%d viWrite, query: %s string length: %d", session, data->command, strlen(data->command));
 			ErrorCodeToString(temp, status, data->errorString);
 			return;
 		}
-    printf("viWrite: %s\n", data->command);
 		data->result[0] = 0;
 	}
 	
@@ -144,6 +142,59 @@ namespace raw {
 		delete baton->callback;
     delete baton;
 	}
+  
+  /* READ READ READ */
+  
+  void VisaEmitter::StaticRead(uv_work_t* req) {
+		QueuedWrite* data = static_cast<QueuedWrite*>(req->data);	
+		VisaEmitter* obj = static_cast<VisaEmitter*>(data->obj);
+		obj->EIO_Read(data);
+	}
+  
+  void VisaEmitter::EIO_Read(QueuedWrite* queuedWrite) {
+		GenericBaton* data = static_cast<GenericBaton*>(queuedWrite->baton);
+		if (!this->isConnected || session < 1) {
+			ErrorCodeToString("not connected", 11, data->errorString);
+			return;
+		}
+      
+		char temp[QUERY_STRING_SIZE];
+		memset(temp, 0, sizeof(temp));
+		ViInt32 rdBufferSize = sizeof(temp);
+		ViUInt32 returnCount;
+    
+    ViStatus status = viRead(session, (ViBuf)temp, QUERY_STRING_SIZE, &returnCount);
+		if ((status < VI_SUCCESS)) {
+			_snprintf(temp, sizeof(temp), "%d viRead, returnCount: %d", session, returnCount);
+      printf("error viRead\n");
+			ErrorCodeToString(temp, status, data->errorString);
+			return;
+		}
+    printf("DONE viRead (%d)\n%s\n", returnCount, temp);
+    _snprintf(data->result, QUERY_STRING_SIZE, "%s", temp);
+		data->result[strlen(temp)-1] = 0; // ??
+	}
+	
+	void VisaEmitter::EIO_AfterRead(uv_work_t* req) {
+    NanScope();
+		QueuedWrite* queuedWrite = static_cast<QueuedWrite*>(req->data);
+		GenericBaton* baton = static_cast<GenericBaton*>(queuedWrite->baton);
+		printf("EIO_AfterRead\n");
+		Handle<Value> argv[2];
+		if(baton->errorString[0]) {
+			argv[0] = Exception::Error(NanNew<String>(baton->errorString));
+			argv[1] = NanUndefined();
+		} else {
+			argv[0] = NanUndefined();
+			argv[1] = NanNew(baton->result);
+		}
+		baton->callback->Call(2, argv);
+		
+		delete baton->callback;
+    delete baton;
+	}
+  
+  
   
   /* QUERY QUERY */
   

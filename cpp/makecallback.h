@@ -56,6 +56,7 @@ namespace raw {
       static NAN_METHOD(New);
       static NAN_METHOD(Open);
       static NAN_METHOD(Write);
+      static NAN_METHOD(Read);
       static NAN_METHOD(Query);
       static NAN_METHOD(Trigger);
       
@@ -72,6 +73,10 @@ namespace raw {
       static void StaticWrite(uv_work_t* req);
       void EIO_Write(QueuedWrite* baton);
       static void EIO_AfterWrite(uv_work_t* req);
+      
+      static void StaticRead(uv_work_t* req);
+      void EIO_Read(QueuedWrite* baton);
+      static void EIO_AfterRead(uv_work_t* req);
       
       static void StaticQuery(uv_work_t* req);
       void EIO_Query(QueuedWrite* queuedWrite);

@@ -87,6 +87,7 @@ namespace raw {
     NODE_SET_PROTOTYPE_METHOD(tpl, "new", New);
     NODE_SET_PROTOTYPE_METHOD(tpl, "open", Open);
     NODE_SET_PROTOTYPE_METHOD(tpl, "write", Write);
+    NODE_SET_PROTOTYPE_METHOD(tpl, "read", Read);
     NODE_SET_PROTOTYPE_METHOD(tpl, "query", Query);
     NODE_SET_PROTOTYPE_METHOD(tpl, "trigger", Trigger);
   }
@@ -133,49 +134,13 @@ namespace raw {
     memset(baton, 0, sizeof(GenericBaton));
     strcpy(baton->command, ve->address_->c_str());
     baton->callback = new NanCallback(callback);
-    // baton->instr = &obj->instr;
-  
+
     uv_work_t* req = new uv_work_t();
     baton->obj = ve;
     req->data = baton;
-    uv_queue_work(uv_default_loop(), req, VisaEmitter::StaticOpen, (uv_after_work_cb)VisaEmitter::EIO_AfterOpen);
-    
+    uv_queue_work(uv_default_loop(), req, VisaEmitter::StaticOpen, (uv_after_work_cb)VisaEmitter::EIO_AfterOpen);    
     NanReturnUndefined();
   }
-  
-  /*
-  NAN_METHOD(VisaEmitter::Open) {
-    NanScope();
-    VisaEmitter* ve = ObjectWrap::Unwrap<VisaEmitter>(args.This());
-    
-    if(!args[0]->IsFunction()) {
-      NanThrowTypeError("Argument must be a function(err, res)");
-      NanReturnUndefined();
-    }
-    Local<Function> callback = args[0].As<Function>();
-    
-    Handle<Value> argv[2];
-    int viStatus = ve->Connect();
-    if (viStatus != VI_SUCCESS) {
-      argv[0] = v8::Exception::Error(NanNew<v8::String>(raw_strerror (viStatus)));
-      argv[1] = NanUndefined();
-    }
-    else {
-      argv[0] = NanUndefined();
-      argv[1] = NanNew<v8::Int32>(0);
-    }
-    
-    // someday, this should be async.. u
-    (new NanCallback(callback))->Call(2, argv);
-    
-    if (viStatus == VI_SUCCESS) {
-      Handle<Value> argv[2] = {
-        NanNew<v8::String>("open"), 
-        NanNew<v8::Int32>(0)
-      };
-      NanMakeCallback(args.This(), "emit", 2, argv);
-    }
-  } */
   
   NAN_METHOD(VisaEmitter::Write) {
 		NanScope();
@@ -217,6 +182,33 @@ namespace raw {
 		//}
 		//uv_mutex_unlock(&write_queue_mutex);
 		
+		NanReturnUndefined();
+	}
+  
+  NAN_METHOD(VisaEmitter::Read) {
+		NanScope();
+		VisaEmitter* obj = ObjectWrap::Unwrap<VisaEmitter>(args.This());
+		printf("Read\n");
+		if(!args[0]->IsFunction()) {
+			NanThrowTypeError("argument must be a function: err, res");
+			NanReturnUndefined();
+		}
+		Local<Function> callback = args[0].As<Function>();
+		
+		GenericBaton* baton = new GenericBaton();
+		memset(baton, 0, sizeof(GenericBaton));
+		strcpy(baton->errorString, "");
+		baton->callback = new NanCallback(callback);
+		
+		uv_work_t* req = new uv_work_t();
+  	req->data = baton;
+  
+		QueuedWrite* queuedWrite = new QueuedWrite();
+		memset(queuedWrite, 0, sizeof(QueuedWrite));
+		queuedWrite->baton = baton;
+		queuedWrite->req.data = queuedWrite;
+		queuedWrite->obj = obj;
+    uv_queue_work(uv_default_loop(), &queuedWrite->req, VisaEmitter::StaticRead, (uv_after_work_cb)VisaEmitter::EIO_AfterRead);
 		NanReturnUndefined();
 	}
   

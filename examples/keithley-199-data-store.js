@@ -14,9 +14,11 @@ kei199.on('srq', function(stb) {
     if (stb & 2) {
        async.series ([
           function(callback) { kei199.write("B1N10X", callback) }, // data from store, stop scan  
-          function(callback) { setTimeout(callback, 500) },
-          function(callback) { kei199.query("G6X", callback) }, // format with locations, channels
-          function(callback) { setTimeout(callback, 500) } // we should be looping here for number below; kill query in the line above
+          function(callback) { kei199.write("G6X", callback) }, // format with locations, channels
+          function(callback) { kei199.read(callback) },// we should be looping here for number below;
+          function(callback) { kei199.read(callback) },
+          function(callback) { kei199.read(callback) },
+          function(callback) { kei199.read(callback) }
           ], function(err, res) {
             if (err) { 
               console.log('ERROR1');

@@ -15,18 +15,23 @@ function VisaPort(path, options) {
 
 util.inherits (VisaPort, EventEmitter);
 
-VisaPort.prototype.open = function (err, res) {
-	this.wrap.open(err, res);
+VisaPort.prototype.open = function (callback) {
+	this.wrap.open(callback);
 	return this;
 }
 
-VisaPort.prototype.write = function (err, res) {
-	this.wrap.write(err, res);
+VisaPort.prototype.write = function (query, callback) {
+	this.wrap.write(query, callback);
 	return this;
 }
 
-VisaPort.prototype.query = function (err, res) {
-	this.wrap.query(err, res);
+VisaPort.prototype.query = function (query, callback) {
+	this.wrap.query(query, callback);
+	return this;
+}
+
+VisaPort.prototype.read = function (callback) {
+	this.wrap.read(callback);
 	return this;
 }
 
