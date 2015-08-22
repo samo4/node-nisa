@@ -16,32 +16,14 @@ function debugCallback (err, res) {
     }
 }
 
-var obj16 = new raw.VisaEmitter("GPIB0::16::INSTR");
+
 
 var obj12 = new raw.VisaEmitter("GPIB0::12::INSTR");
 
 var obj = new raw.VisaEmitter("GPIB0::11::INSTR");
 
-obj16.on('srq', function(a1) {
-    console.log(a1 ? ("SRQ 16:  " + a1) : "SRQ Nothing");
-});
-obj16.open(function (err, res) {
-    if (err) {
-        console.log("open err:  " + err);    
-    } else {
-		obj16.write("M1X", function(err, res) {
-            if (err) {
-                console.log("open err:  " + err);    
-            } else {
-                setInterval(function() {
-                        obj16.query("F0R2X", function (err, res) {
-                        process.stdout.write(" " + res + "\r");
-                    });
-                }, 1000);
-            }    
-        }); 
-    }
-});
+
+
 
 
 /*
