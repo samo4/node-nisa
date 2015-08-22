@@ -123,25 +123,6 @@ namespace raw {
 		}
 		data->result[0] = 0;
 	}
-	
-	void VisaEmitter::EIO_AfterWrite(uv_work_t* req) {
-  		NanScope();
-		QueuedWrite* queuedWrite = static_cast<QueuedWrite*>(req->data);
-		GenericBaton* baton = static_cast<GenericBaton*>(queuedWrite->baton);
-		
-		Handle<Value> argv[2];
-		if(baton->errorString[0]) {
-			argv[0] = Exception::Error(NanNew<String>(baton->errorString));
-			argv[1] = NanUndefined();
-		} else {
-			argv[0] = NanUndefined();
-			argv[1] = NanNew(baton->result);
-		}
-		baton->callback->Call(2, argv);
-		
-		delete baton->callback;
-    delete baton;
-	}
   
   /* READ READ READ */
   
@@ -172,27 +153,7 @@ namespace raw {
     //printf("DONE viRead (%d) %s\n", returnCount, temp);
     _snprintf(data->result, QUERY_STRING_SIZE, "%s", temp);
 		data->result[strlen(temp)-1] = 0; // ??
-	}
-	
-	void VisaEmitter::EIO_AfterRead(uv_work_t* req) {
-    NanScope();
-		QueuedWrite* queuedWrite = static_cast<QueuedWrite*>(req->data);
-		GenericBaton* baton = static_cast<GenericBaton*>(queuedWrite->baton);
-		Handle<Value> argv[2];
-		if(baton->errorString[0]) {
-			argv[0] = Exception::Error(NanNew<String>(baton->errorString));
-			argv[1] = NanUndefined();
-		} else {
-			argv[0] = NanUndefined();
-			argv[1] = NanNew(baton->result);
-		}
-		baton->callback->Call(2, argv);
-		
-		delete baton->callback;
-    delete baton;
-	}
-  
-  
+	}  
   
   /* QUERY QUERY */
   
@@ -219,28 +180,6 @@ namespace raw {
     return;
   }
   
-  void VisaEmitter::EIO_AfterQuery(uv_work_t* req) {
-    NanScope();
-    QueuedWrite* queuedWrite = static_cast<QueuedWrite*>(req->data);
-    GenericBaton* baton = static_cast<GenericBaton*>(queuedWrite->baton);
-  
-    Handle<Value> argv[2];
-    if(baton->errorString[0]) {
-      argv[0] = Exception::Error(NanNew<String>(baton->errorString));
-      argv[1] = NanUndefined();
-    } else {
-      argv[0] = NanUndefined();
-      argv[1] = NanNew(baton->result);
-    }
-    baton->callback->Call(2, argv);
-  
-    // NanDisposePersistent(baton->buffer);
-    delete baton->callback;
-    // delete baton->cmd;
-    delete baton;
-    delete queuedWrite;
-  }
-  
   void VisaEmitter::StaticQuery(uv_work_t* req) {
     QueuedWrite* data = static_cast<QueuedWrite*>(req->data);	
     VisaEmitter* obj = static_cast<VisaEmitter*>(data->obj);
@@ -264,8 +203,7 @@ namespace raw {
       printf("status < VI_SUCCESS");
       ErrorCodeToString(temp, status, data->errorString);
       return;
-    }
-    
+    } 
   }
   
   
@@ -274,6 +212,29 @@ namespace raw {
     VisaEmitter* obj = static_cast<VisaEmitter*>(data->obj);
     obj->EIO_Trigger(data);
   }
+  
+  /* after all after all after all after all after all after all after all after all after all after all after all after all after all after all */
+  
+  void VisaEmitter::EIO_AfterAll(uv_work_t* req) {
+    NanScope();
+		QueuedWrite* queuedWrite = static_cast<QueuedWrite*>(req->data);
+		GenericBaton* baton = static_cast<GenericBaton*>(queuedWrite->baton);
+		Handle<Value> argv[2];
+		if(baton->errorString[0]) {
+			argv[0] = Exception::Error(NanNew<String>(baton->errorString));
+			argv[1] = NanUndefined();
+		} else {
+			argv[0] = NanUndefined();
+			argv[1] = NanNew(baton->result);
+		}
+		baton->callback->Call(2, argv);
+		
+    // NanDisposePersistent(baton->buffer);
+    delete baton->callback;
+    // delete baton->cmd;
+    delete baton;
+    delete queuedWrite;
+	}
 	
   /* CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK  */
 	

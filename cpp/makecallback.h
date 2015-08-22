@@ -72,18 +72,17 @@ namespace raw {
       
       static void StaticWrite(uv_work_t* req);
       void EIO_Write(QueuedWrite* baton);
-      static void EIO_AfterWrite(uv_work_t* req);
       
       static void StaticRead(uv_work_t* req);
       void EIO_Read(QueuedWrite* baton);
-      static void EIO_AfterRead(uv_work_t* req);
       
       static void StaticQuery(uv_work_t* req);
       void EIO_Query(QueuedWrite* queuedWrite);
-      static void EIO_AfterQuery(uv_work_t* req);
       
       static void StaticTrigger(uv_work_t* req);
       void EIO_Trigger(QueuedWrite* queuedWrite);
+      
+      static void EIO_AfterAll(uv_work_t* req);
   }; 
   
   struct ListResultItem {

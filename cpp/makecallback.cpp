@@ -178,7 +178,7 @@ namespace raw {
 		//bool empty = QUEUE_EMPTY(&write_queue);
 		//QUEUE_INSERT_TAIL(&write_queue, &queuedWrite->queue);
 		//if (empty) {
-			uv_queue_work(uv_default_loop(), &queuedWrite->req, VisaEmitter::StaticWrite, (uv_after_work_cb)VisaEmitter::EIO_AfterWrite);
+			uv_queue_work(uv_default_loop(), &queuedWrite->req, VisaEmitter::StaticWrite, (uv_after_work_cb)VisaEmitter::EIO_AfterAll);
 		//}
 		//uv_mutex_unlock(&write_queue_mutex);
 		
@@ -207,7 +207,7 @@ namespace raw {
 		queuedWrite->baton = baton;
 		queuedWrite->req.data = queuedWrite;
 		queuedWrite->obj = obj;
-    uv_queue_work(uv_default_loop(), &queuedWrite->req, VisaEmitter::StaticRead, (uv_after_work_cb)VisaEmitter::EIO_AfterRead);
+    uv_queue_work(uv_default_loop(), &queuedWrite->req, VisaEmitter::StaticRead, (uv_after_work_cb)VisaEmitter::EIO_AfterAll);
 		NanReturnUndefined();
 	}
   
@@ -246,7 +246,7 @@ namespace raw {
     bool empty = QUEUE_EMPTY(&write_queue);
     QUEUE_INSERT_TAIL(&write_queue, &queuedWrite->queue);
     if (empty) { */
-    uv_queue_work(uv_default_loop(), &queuedWrite->req, VisaEmitter::StaticQuery, (uv_after_work_cb)VisaEmitter::EIO_AfterQuery);
+    uv_queue_work(uv_default_loop(), &queuedWrite->req, VisaEmitter::StaticQuery, (uv_after_work_cb)VisaEmitter::EIO_AfterAll);
     /*}
     uv_mutex_unlock(&write_queue_mutex); 
     */
