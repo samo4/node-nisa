@@ -6,6 +6,8 @@ var DeviationStream = require('standard-deviation-stream');
 // standard Keithley 199 address is 26 
 var kei199 = new Visa("GPIB0::26::INSTR");
 
+var numberOfMeasurements = 20;
+
 kei199.on('srq', function(stb) {
     if (!stb)
         return;
@@ -15,10 +17,23 @@ kei199.on('srq', function(stb) {
        async.series ([
           function(callback) { kei199.write("B1N10X", callback) }, // data from store, stop scan  
           function(callback) { kei199.write("G6X", callback) }, // format with locations, channels
-          function(callback) { kei199.read(callback) },// we should be looping here for number below;
-          function(callback) { kei199.read(callback) },
-          function(callback) { kei199.read(callback) },
-          function(callback) { kei199.read(callback) }
+          function(callback) {
+            var items = new Array(numberOfMeasurements); // [ 1, 2, 3, 4 ];
+            async.forEachOf(items, function(v, k, next) {
+              kei199.read(function(err, res) { 
+                //console.log(res); 
+                items[k] = res;
+                return next();  
+              });
+            }, function(err) {
+              if (err) {
+                console.log("error reading: " + err);
+                return callback(err);  
+              }
+              console.log(items);
+              return callback();
+            });
+          },
           ], function(err, res) {
             if (err) { 
               console.log('ERROR1');
@@ -45,9 +60,9 @@ async.series ([
   function(callback) { setTimeout(callback, 500) },  
   function(callback) { kei199.write("O0G1F0R2X", callback) }, // 2-pole; scientific notation; DCV 3V;  
   function(callback) { setTimeout(callback, 500) }, 
-  function(callback) { kei199.write("N18Q1000T2X", callback) }, // one channel per store interval; 1s interval; continious GET
+  function(callback) { kei199.write("N0Q250T2X", callback) }, // one channel per store interval; 250ms interval; continious GET
   function(callback) { setTimeout(callback, 500) }, 
-  function(callback) { kei199.write("I4X", callback) },// 2 readigns;
+  function(callback) { kei199.write("I" + numberOfMeasurements +  "X", callback) },// 4 readigns;
   function(callback) { setTimeout(callback, 500) }, 
   function(callback) { kei199.write("M3X", callback) },  // SRQ when full and on overrange
   function(callback) { setTimeout(callback, 500) },

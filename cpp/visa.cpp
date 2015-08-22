@@ -166,11 +166,10 @@ namespace raw {
     ViStatus status = viRead(session, (ViBuf)temp, QUERY_STRING_SIZE, &returnCount);
 		if ((status < VI_SUCCESS)) {
 			_snprintf(temp, sizeof(temp), "%d viRead, returnCount: %d", session, returnCount);
-      printf("error viRead\n");
 			ErrorCodeToString(temp, status, data->errorString);
 			return;
 		}
-    printf("DONE viRead (%d)\n%s\n", returnCount, temp);
+    //printf("DONE viRead (%d) %s\n", returnCount, temp);
     _snprintf(data->result, QUERY_STRING_SIZE, "%s", temp);
 		data->result[strlen(temp)-1] = 0; // ??
 	}
@@ -179,7 +178,6 @@ namespace raw {
     NanScope();
 		QueuedWrite* queuedWrite = static_cast<QueuedWrite*>(req->data);
 		GenericBaton* baton = static_cast<GenericBaton*>(queuedWrite->baton);
-		printf("EIO_AfterRead\n");
 		Handle<Value> argv[2];
 		if(baton->errorString[0]) {
 			argv[0] = Exception::Error(NanNew<String>(baton->errorString));

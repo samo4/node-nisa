@@ -188,7 +188,6 @@ namespace raw {
   NAN_METHOD(VisaEmitter::Read) {
 		NanScope();
 		VisaEmitter* obj = ObjectWrap::Unwrap<VisaEmitter>(args.This());
-		printf("Read\n");
 		if(!args[0]->IsFunction()) {
 			NanThrowTypeError("argument must be a function: err, res");
 			NanReturnUndefined();
