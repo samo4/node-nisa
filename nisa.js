@@ -30,6 +30,11 @@ VisaPort.prototype.query = function (err, res) {
 	return this;
 }
 
+VisaPort.prototype.trigger = function() {
+	this.wrap.trigger();
+	return this;
+}
+
 VisaPort.prototype.onSrq = function (stb) {
 	var me = this;
 	me.emit ("srq", stb);

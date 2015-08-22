@@ -88,6 +88,7 @@ namespace raw {
     NODE_SET_PROTOTYPE_METHOD(tpl, "open", Open);
     NODE_SET_PROTOTYPE_METHOD(tpl, "write", Write);
     NODE_SET_PROTOTYPE_METHOD(tpl, "query", Query);
+    NODE_SET_PROTOTYPE_METHOD(tpl, "trigger", Trigger);
   }
   
   NAN_METHOD(VisaEmitter::New) {
@@ -261,7 +262,17 @@ namespace raw {
     NanReturnUndefined();
   }
   
- 
+  NAN_METHOD(VisaEmitter::Trigger) {
+    NanScope();
+    VisaEmitter* obj = ObjectWrap::Unwrap<VisaEmitter>(args.This());
+    
+    QueuedWrite* queuedWrite = new QueuedWrite();
+		memset(queuedWrite, 0, sizeof(QueuedWrite));
+		queuedWrite->req.data = queuedWrite;
+		queuedWrite->obj = obj;
+    
+    uv_queue_work(uv_default_loop(), &queuedWrite->req, VisaEmitter::StaticTrigger, NULL);
+  }
   
   void VisaEmitter::HandleHardwareEvent (int status, int srqStatus) {
     NanScope();

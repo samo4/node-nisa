@@ -197,6 +197,34 @@ namespace raw {
     VisaEmitter* obj = static_cast<VisaEmitter*>(data->obj);
     obj->EIO_Query(data);
   }
+  
+  /* TRIGGER TRIGGER */
+  
+  void VisaEmitter::EIO_Trigger(QueuedWrite* queuedWrite) {
+    GenericBaton* data = static_cast<GenericBaton*>(queuedWrite->baton);
+    printf("viAssertTrigger");
+    if (!this->isConnected || session < 1) {
+			ErrorCodeToString("not connected", 11, data->errorString);
+      printf("not connected");
+			return;
+		}
+    char temp[QUERY_STRING_SIZE];
+    ViStatus status = viAssertTrigger(session, VI_TRIG_PROT_DEFAULT);
+    if ((status < VI_SUCCESS)) {
+      _snprintf(temp, sizeof(temp), "%d viAssertTrigger", session);
+      printf("status < VI_SUCCESS");
+      ErrorCodeToString(temp, status, data->errorString);
+      return;
+    }
+    
+  }
+  
+  
+  void VisaEmitter::StaticTrigger(uv_work_t* req) {
+    QueuedWrite* data = static_cast<QueuedWrite*>(req->data);	
+    VisaEmitter* obj = static_cast<VisaEmitter*>(data->obj);
+    obj->EIO_Trigger(data);
+  }
 	
   /* CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK  */
 	

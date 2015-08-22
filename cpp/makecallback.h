@@ -57,6 +57,7 @@ namespace raw {
       static NAN_METHOD(Open);
       static NAN_METHOD(Write);
       static NAN_METHOD(Query);
+      static NAN_METHOD(Trigger);
       
       uv_async_t m_async;
       
@@ -75,6 +76,9 @@ namespace raw {
       static void StaticQuery(uv_work_t* req);
       void EIO_Query(QueuedWrite* queuedWrite);
       static void EIO_AfterQuery(uv_work_t* req);
+      
+      static void StaticTrigger(uv_work_t* req);
+      void EIO_Trigger(QueuedWrite* queuedWrite);
   }; 
   
   struct ListResultItem {
