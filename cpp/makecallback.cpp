@@ -60,8 +60,6 @@ namespace raw {
   
   VisaEmitter::VisaEmitter(std::string s) {
     address_ = new std::string(s);
-	  //uv_async_init(uv_default_loop(), &async_, print_progress);	
-	  //this->poll_initialised_ = true;
     instances.push_back(this); 
   }
   
@@ -70,8 +68,14 @@ namespace raw {
     if (isConnected)
       viClose(session);
       
-    instances[0] = NULL;
-    //instances.erase(this);
+    printf("DEBUG: VisaEmitter Destructor");
+    
+    auto iter = std::find(instances.begin(), instances.end(), this);
+    if (iter != instances.end())
+    {
+        printf("DEBUG: VisaEmitter Deleted something");
+        instances.erase(iter);
+    }
   }
   
   void VisaEmitter::Init() {
@@ -83,6 +87,7 @@ namespace raw {
     NODE_SET_PROTOTYPE_METHOD(tpl, "new", New);
     NODE_SET_PROTOTYPE_METHOD(tpl, "open", Open);
     NODE_SET_PROTOTYPE_METHOD(tpl, "write", Write);
+    NODE_SET_PROTOTYPE_METHOD(tpl, "query", Query);
   }
   
   NAN_METHOD(VisaEmitter::New) {
@@ -187,8 +192,8 @@ namespace raw {
 		}
 		Local<Function> callback = args[1].As<Function>();
 		
-		WriteBaton* baton = new WriteBaton();
-		memset(baton, 0, sizeof(WriteBaton));
+		GenericBaton* baton = new GenericBaton();
+		memset(baton, 0, sizeof(GenericBaton));
 		strcpy(baton->errorString, "");
 		strcpy(baton->command, *cmd);
 		baton->callback = new NanCallback(callback);
@@ -213,6 +218,50 @@ namespace raw {
 		
 		NanReturnUndefined();
 	}
+  
+  NAN_METHOD(VisaEmitter::Query) {
+    NanScope();
+    VisaEmitter* obj = ObjectWrap::Unwrap<VisaEmitter>(args.This());
+    
+    if(!args[0]->IsString()) {
+      NanThrowTypeError("First argument must be a string");
+      NanReturnUndefined();
+    }
+    String::Utf8Value cmd(args[0]->ToString());
+    
+    if(!args[1]->IsFunction()) {
+      NanThrowTypeError("Second argument must be a function: err, res");
+      NanReturnUndefined();
+    }
+    Local<Function> callback = args[1].As<Function>();
+    
+    GenericBaton* baton = new GenericBaton();
+		memset(baton, 0, sizeof(GenericBaton));
+		strcpy(baton->errorString, "");
+		strcpy(baton->command, *cmd);
+		baton->callback = new NanCallback(callback);
+		
+		uv_work_t* req = new uv_work_t();
+  	req->data = baton;
+  
+		QueuedWrite* queuedWrite = new QueuedWrite();
+		memset(queuedWrite, 0, sizeof(QueuedWrite));
+		//QUEUE_INIT(&queuedWrite->queue);
+		queuedWrite->baton = baton;
+		queuedWrite->req.data = queuedWrite;
+		queuedWrite->obj = obj;
+    /* uv_mutex_lock(&write_queue_mutex);
+    bool empty = QUEUE_EMPTY(&write_queue);
+    QUEUE_INSERT_TAIL(&write_queue, &queuedWrite->queue);
+    if (empty) { */
+    uv_queue_work(uv_default_loop(), &queuedWrite->req, VisaEmitter::StaticQuery, (uv_after_work_cb)VisaEmitter::EIO_AfterQuery);
+    /*}
+    uv_mutex_unlock(&write_queue_mutex); 
+    */
+    NanReturnUndefined();
+  }
+  
+ 
   
   void VisaEmitter::HandleHardwareEvent (int status, int srqStatus) {
     NanScope();

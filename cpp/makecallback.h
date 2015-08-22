@@ -29,6 +29,7 @@ using namespace v8;
 namespace raw {
   struct ListBaton;
   struct OpenBaton;
+  struct GenericBaton;
   struct QueuedWrite;
   
   ViStatus write(ViSession instr1, const char* input);
@@ -55,6 +56,7 @@ namespace raw {
       static NAN_METHOD(New);
       static NAN_METHOD(Open);
       static NAN_METHOD(Write);
+      static NAN_METHOD(Query);
       
       uv_async_t m_async;
       
@@ -62,19 +64,32 @@ namespace raw {
       
       static void aCallback(uv_async_t *async, int status);
       
+      static void StaticOpen(uv_work_t* req);
+      void EIO_Open(OpenBaton* baton);
+      static void EIO_AfterOpen(uv_work_t* req);
+      
       static void StaticWrite(uv_work_t* req);
       void EIO_Write(QueuedWrite* baton);
       static void EIO_AfterWrite(uv_work_t* req);
       
-      static void StaticOpen(uv_work_t* req);
-      void EIO_Open(OpenBaton* baton);
-      static void EIO_AfterOpen(uv_work_t* req);
+      static void StaticQuery(uv_work_t* req);
+      void EIO_Query(QueuedWrite* queuedWrite);
+      static void EIO_AfterQuery(uv_work_t* req);
   }; 
   
   struct ListResultItem {
     public:
       std::string path;
       std::string idn;
+  };
+  
+  struct GenericBaton {
+    public:
+      char command[QUERY_STRING_SIZE];
+      NanCallback* callback;
+      VisaEmitter* obj;
+      char result[QUERY_STRING_SIZE];
+      char errorString[ERROR_STRING_SIZE];
   };
   
   struct ListBaton {
@@ -94,20 +109,11 @@ namespace raw {
       VisaEmitter* obj;
   };
   
-  struct WriteBaton {
-    public:
-      char command[QUERY_STRING_SIZE];
-      NanCallback* callback;
-      VisaEmitter* obj;
-      char result[QUERY_STRING_SIZE];
-      char errorString[ERROR_STRING_SIZE];
-  };
-  
   struct QueuedWrite {
     public:
       uv_work_t req;
       QUEUE queue;
-      WriteBaton* baton;
+      GenericBaton* baton;
       VisaEmitter* obj;
   };
 }; /* namespace raw */

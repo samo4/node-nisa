@@ -14,6 +14,7 @@
   "gypfile": true,
   "dependencies": {
     "bindings": "^1.2.1",
+    "keypress": "^0.2.1",
     "nan": "<2.0.0",
     "paktc": "^1.0.1"
   }

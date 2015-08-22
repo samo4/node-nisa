@@ -106,7 +106,7 @@ namespace raw {
 	}
 	
 	void VisaEmitter::EIO_Write(QueuedWrite* queuedWrite) {
-		WriteBaton* data = static_cast<WriteBaton*>(queuedWrite->baton);
+		GenericBaton* data = static_cast<GenericBaton*>(queuedWrite->baton);
 		if (!sizeof(data->command) || !this->isConnected || session < 1) {
 			ErrorCodeToString("not connected or bad empty command", 11, data->errorString);
 			return;
@@ -130,7 +130,7 @@ namespace raw {
 	void VisaEmitter::EIO_AfterWrite(uv_work_t* req) {
 		NanScope();
 		QueuedWrite* queuedWrite = static_cast<QueuedWrite*>(req->data);
-		WriteBaton* baton = static_cast<WriteBaton*>(queuedWrite->baton);
+		GenericBaton* baton = static_cast<GenericBaton*>(queuedWrite->baton);
 		
 		Handle<Value> argv[2];
 		if(baton->errorString[0]) {
@@ -145,6 +145,59 @@ namespace raw {
 		delete baton->callback;
     delete baton;
 	}
+  
+  /* QUERY QUERY */
+  
+  void VisaEmitter::EIO_Query(QueuedWrite* queuedWrite) {
+    GenericBaton* data = static_cast<GenericBaton*>(queuedWrite->baton);
+    if (!sizeof(data->command) || !this->isConnected || session < 1) {
+			ErrorCodeToString("not connected or bad empty command", 11, data->errorString);
+			return;
+		}
+    char temp[QUERY_STRING_SIZE];
+    ViInt32 rdBufferSize = sizeof(temp);
+    ViUInt32 returnCount;
+    
+    //if (data->command[strlen(data->command)-1] == 63) { // if ends in ?
+    ViChar rdBuffer[256];
+    ViStatus status = viQueryf(session, (ViString)data->command, "%256[^,]%*T", rdBuffer);
+    if ((status < VI_SUCCESS)) {
+      _snprintf(temp, sizeof(temp), "%d viQueryf, query: %s string length: %d", session, data->command, strlen(data->command));
+      ErrorCodeToString(temp, status, data->errorString);
+      return;
+    }
+    // this will not go down nicely on non-WIN32...
+    _snprintf_s(data->result, _countof(data->result), _TRUNCATE, "%s", rdBuffer );  
+    return;
+  }
+  
+  void VisaEmitter::EIO_AfterQuery(uv_work_t* req) {
+    NanScope();
+    QueuedWrite* queuedWrite = static_cast<QueuedWrite*>(req->data);
+    GenericBaton* baton = static_cast<GenericBaton*>(queuedWrite->baton);
+  
+    Handle<Value> argv[2];
+    if(baton->errorString[0]) {
+      argv[0] = Exception::Error(NanNew<String>(baton->errorString));
+      argv[1] = NanUndefined();
+    } else {
+      argv[0] = NanUndefined();
+      argv[1] = NanNew(baton->result);
+    }
+    baton->callback->Call(2, argv);
+  
+    // NanDisposePersistent(baton->buffer);
+    delete baton->callback;
+    // delete baton->cmd;
+    delete baton;
+    delete queuedWrite;
+  }
+  
+  void VisaEmitter::StaticQuery(uv_work_t* req) {
+    QueuedWrite* data = static_cast<QueuedWrite*>(req->data);	
+    VisaEmitter* obj = static_cast<VisaEmitter*>(data->obj);
+    obj->EIO_Query(data);
+  }
 	
   /* CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK  */
 	
