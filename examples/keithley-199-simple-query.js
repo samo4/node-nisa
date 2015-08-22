@@ -2,12 +2,26 @@ var Visa = require ("../nisa.js").Visa;
 
 var DeviationStream = require('standard-deviation-stream');
 
-
 // standard Keithley 199 address is 26 
 var kei199 = new Visa("GPIB0::26::INSTR", null);
 
-kei199.on('srq', function(a1) {
-    console.log(a1 ? ("SRQ 16:  " + a1) : "SRQ Nothing");
+kei199.on('srq', function(stb) {
+    if (!stb)
+        return;
+    // console.log(stb ? ("SRQ 16:  " + stb.toString(2)) : "SRQ Nothing");
+    
+    if (stb & 1) 
+        console.log("Reading overflow");
+    if (stb & 2) 
+        console.log("Data store full");
+    if (stb & 4) 
+        console.log("Data store half full");
+    if (stb & 8) 
+        console.log("Reading done");
+        
+    if (!(stb & 15)) {
+        console.log("Unknown SRQ status byte:  " + (stb).toString(2));    
+    } 
 });
 kei199.open(function (err, res) {
     if (err) {

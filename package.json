@@ -13,6 +13,7 @@
   "license": "ISC",
   "gypfile": true,
   "dependencies": {
+    "async": "^1.4.2",
     "bindings": "^1.2.1",
     "keypress": "^0.2.1",
     "nan": "<2.0.0",
