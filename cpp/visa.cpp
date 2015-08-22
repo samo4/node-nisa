@@ -6,35 +6,35 @@ namespace raw {
   /* OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN */
   
   void VisaEmitter::StaticOpen(uv_work_t* req) {
-    OpenBaton* data = static_cast<OpenBaton*>(req->data);
+    GenericBaton* data = static_cast<GenericBaton*>(req->data);
     VisaEmitter* obj = static_cast<VisaEmitter*>(data->obj);
     obj->EIO_Open(data);
   } 
   
-  void VisaEmitter::EIO_Open(OpenBaton* baton) {
+  void VisaEmitter::EIO_Open(GenericBaton* baton) {
     char temp[QUERY_STRING_SIZE];
     ViStatus status;
     if (this->isConnected)
     {
-      _snprintf(temp, sizeof(temp), "Already connected %s", baton->path);
+      _snprintf(temp, sizeof(temp), "Already connected %s", baton->command);
       ErrorCodeToString(temp, status, baton->errorString);
       return;
     }
     status = viOpenDefaultRM(&defaultRM);
     if (status < VI_SUCCESS) {
-      _snprintf(temp, sizeof(temp), "Opening RM for: %s", baton->path);
+      _snprintf(temp, sizeof(temp), "Opening RM for: %s", baton->command);
       ErrorCodeToString(temp, status, baton->errorString);
       return;
     }
-    status = viOpen(defaultRM, baton->path, VI_NULL, VI_NULL, &session);
+    status = viOpen(defaultRM, baton->command, VI_NULL, VI_NULL, &session);
     if (status < VI_SUCCESS) {
-      _snprintf(temp, sizeof(temp), "Opening session %s", baton->path);
+      _snprintf(temp, sizeof(temp), "Opening session %s", baton->command);
       ErrorCodeToString(temp, status, baton->errorString);
       return;
     }
     status = viSetAttribute(session, VI_ATTR_TMO_VALUE, 5000);
     if (status < VI_SUCCESS) {
-      _snprintf(temp, sizeof(temp), "Setting attributes on %s", baton->path);
+      _snprintf(temp, sizeof(temp), "Setting attributes on %s", baton->command);
       ErrorCodeToString(temp, status, baton->errorString);
       return;
     }
@@ -63,18 +63,17 @@ namespace raw {
 		  status = viEnableEvent(session, VI_EVENT_SERVICE_REQ, VI_HNDLR, VI_NULL);
     }  
     if (status < VI_SUCCESS) {
-      _snprintf(temp, sizeof(temp), "Post AfterOpenSuccess session %s", baton->path);
+      _snprintf(temp, sizeof(temp), "Post AfterOpenSuccess session %s", baton->command);
       ErrorCodeToString(temp, status, baton->errorString);
       return;
     }
-    this->isConnected = true;
-    printf("Opened %s\n", baton->path);  
-    baton->result = session;
+    this->isConnected = true;  
+    _snprintf_s(baton->result, _countof(baton->result), _TRUNCATE, "%d", session);
   }
   
   void VisaEmitter::EIO_AfterOpen(uv_work_t* req) {
     NanScope();
-    OpenBaton* baton = static_cast<OpenBaton*>(req->data);
+    GenericBaton* baton = static_cast<GenericBaton*>(req->data);
   
     v8::Handle<v8::Value> argv[2];
     if(baton->errorString[0]) {
@@ -82,14 +81,14 @@ namespace raw {
       argv[1] = NanUndefined();
     } else {
       argv[0] = NanUndefined();
-      argv[1] = NanNew<v8::Int32>(baton->result);
+      argv[1] = NanNew(baton->result);
     }
   
     baton->callback->Call(2, argv);
     if(!baton->errorString[0]) {
       Handle<Value> argv[2] = {
         NanNew<String>("open"), 
-        NanNew<v8::Int32>(baton->result)
+        NanNew(baton->result)
       };
     }
     
@@ -128,7 +127,7 @@ namespace raw {
 	}
 	
 	void VisaEmitter::EIO_AfterWrite(uv_work_t* req) {
-		NanScope();
+  		NanScope();
 		QueuedWrite* queuedWrite = static_cast<QueuedWrite*>(req->data);
 		GenericBaton* baton = static_cast<GenericBaton*>(queuedWrite->baton);
 		

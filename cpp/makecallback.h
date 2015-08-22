@@ -65,7 +65,7 @@ namespace raw {
       static void aCallback(uv_async_t *async, int status);
       
       static void StaticOpen(uv_work_t* req);
-      void EIO_Open(OpenBaton* baton);
+      void EIO_Open(GenericBaton* baton);
       static void EIO_AfterOpen(uv_work_t* req);
       
       static void StaticWrite(uv_work_t* req);
@@ -96,15 +96,6 @@ namespace raw {
     public:
       NanCallback* callback;
       std::list<ListResultItem*> results;
-      char errorString[ERROR_STRING_SIZE];
-      VisaEmitter* obj;
-  };
-  
-  struct OpenBaton {
-    public:
-      char path[1024];
-      NanCallback* callback;
-      int result;
       char errorString[ERROR_STRING_SIZE];
       VisaEmitter* obj;
   };

@@ -128,9 +128,9 @@ namespace raw {
     }
     Local<Function> callback = args[0].As<Function>();
     
-    OpenBaton* baton = new OpenBaton();
-    memset(baton, 0, sizeof(OpenBaton));
-    strcpy(baton->path, ve->address_->c_str());
+    GenericBaton* baton = new GenericBaton();
+    memset(baton, 0, sizeof(GenericBaton));
+    strcpy(baton->command, ve->address_->c_str());
     baton->callback = new NanCallback(callback);
     // baton->instr = &obj->instr;
   

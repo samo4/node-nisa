@@ -35,7 +35,7 @@ obj16.open(function (err, res) {
             } else {
                 setInterval(function() {
                         obj16.query("F0R2X", function (err, res) {
-                        process.stdout.write(" " + res + "\x1B[0G");
+                        process.stdout.write(" " + res + "\r");
                     });
                 }, 1000);
             }    
