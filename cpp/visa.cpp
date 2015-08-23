@@ -6,36 +6,38 @@ namespace raw {
   /* OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN */
   
   void VisaEmitter::StaticOpen(uv_work_t* req) {
-    GenericBaton* data = static_cast<GenericBaton*>(req->data);
-    VisaEmitter* obj = static_cast<VisaEmitter*>(data->obj);
+    QueuedWrite* data = static_cast<QueuedWrite*>(req->data);	
+		VisaEmitter* obj = static_cast<VisaEmitter*>(data->obj);
     obj->EIO_Open(data);
   } 
   
-  void VisaEmitter::EIO_Open(GenericBaton* baton) {
+  void VisaEmitter::EIO_Open(QueuedWrite* queuedWrite) {
+		GenericBaton* data = static_cast<GenericBaton*>(queuedWrite->baton);
+      
     char temp[QUERY_STRING_SIZE];
     ViStatus status;
     if (this->isConnected)
     {
-      _snprintf(temp, sizeof(temp), "Already connected %s", baton->command);
-      ErrorCodeToString(temp, status, baton->errorString);
+      _snprintf(temp, sizeof(temp), "Already connected %s", data->command);
+      ErrorCodeToString(temp, status, data->errorString);
       return;
     }
     status = viOpenDefaultRM(&defaultRM);
     if (status < VI_SUCCESS) {
-      _snprintf(temp, sizeof(temp), "Opening RM for: %s", baton->command);
-      ErrorCodeToString(temp, status, baton->errorString);
+      _snprintf(temp, sizeof(temp), "Opening RM for: %s", data->command);
+      ErrorCodeToString(temp, status, data->errorString);
       return;
     }
-    status = viOpen(defaultRM, baton->command, VI_NULL, VI_NULL, &session);
+    status = viOpen(defaultRM, data->command, VI_NULL, VI_NULL, &session);
     if (status < VI_SUCCESS) {
-      _snprintf(temp, sizeof(temp), "Opening session %s", baton->command);
-      ErrorCodeToString(temp, status, baton->errorString);
+      _snprintf(temp, sizeof(temp), "Opening session %s", data->command);
+      ErrorCodeToString(temp, status, data->errorString);
       return;
     }
     status = viSetAttribute(session, VI_ATTR_TMO_VALUE, 5000);
     if (status < VI_SUCCESS) {
-      _snprintf(temp, sizeof(temp), "Setting attributes on %s", baton->command);
-      ErrorCodeToString(temp, status, baton->errorString);
+      _snprintf(temp, sizeof(temp), "Setting attributes on %s", data->command);
+      ErrorCodeToString(temp, status, data->errorString);
       return;
     }
     // status = viSetAttribute(instr, VI_ATTR_SEND_END_EN, VI_TRUE);
@@ -63,38 +65,12 @@ namespace raw {
 		  status = viEnableEvent(session, VI_EVENT_SERVICE_REQ, VI_HNDLR, VI_NULL);
     }  
     if (status < VI_SUCCESS) {
-      _snprintf(temp, sizeof(temp), "Post AfterOpenSuccess session %s", baton->command);
-      ErrorCodeToString(temp, status, baton->errorString);
+      _snprintf(temp, sizeof(temp), "Post AfterOpenSuccess session %s", data->command);
+      ErrorCodeToString(temp, status, data->errorString);
       return;
     }
     this->isConnected = true;  
-    _snprintf_s(baton->result, _countof(baton->result), _TRUNCATE, "%d", session);
-  }
-  
-  void VisaEmitter::EIO_AfterOpen(uv_work_t* req) {
-    NanScope();
-    GenericBaton* baton = static_cast<GenericBaton*>(req->data);
-  
-    v8::Handle<v8::Value> argv[2];
-    if(baton->errorString[0]) {
-      argv[0] = v8::Exception::Error(NanNew<v8::String>(baton->errorString));
-      argv[1] = NanUndefined();
-    } else {
-      argv[0] = NanUndefined();
-      argv[1] = NanNew(baton->result);
-    }
-  
-    baton->callback->Call(2, argv);
-    if(!baton->errorString[0]) {
-      Handle<Value> argv[2] = {
-        NanNew<String>("open"), 
-        NanNew(baton->result)
-      };
-    }
-    
-    delete baton->callback;
-    delete baton;
-    delete req;
+    _snprintf_s(data->result, _countof(data->result), _TRUNCATE, "%d", session);
   }
   
 	/* WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE  */
@@ -220,6 +196,9 @@ namespace raw {
 		QueuedWrite* queuedWrite = static_cast<QueuedWrite*>(req->data);
 		GenericBaton* baton = static_cast<GenericBaton*>(queuedWrite->baton);
 		Handle<Value> argv[2];
+    
+    //GenericBaton* baton = static_cast<GenericBaton*>(req->data);
+    printf("EIO_AfterAll\n");
 		if(baton->errorString[0]) {
 			argv[0] = Exception::Error(NanNew<String>(baton->errorString));
 			argv[1] = NanUndefined();
@@ -227,6 +206,7 @@ namespace raw {
 			argv[0] = NanUndefined();
 			argv[1] = NanNew(baton->result);
 		}
+    printf("EIO_AfterAll\n");
 		baton->callback->Call(2, argv);
 		
     // NanDisposePersistent(baton->buffer);

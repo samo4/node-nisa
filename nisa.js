@@ -16,7 +16,15 @@ function VisaPort(path, options) {
 util.inherits (VisaPort, EventEmitter);
 
 VisaPort.prototype.open = function (callback) {
-	this.wrap.open(callback);
+	var me = this;
+	
+	this.wrap.open(function(err, res) {
+		console.log("mijav1111");
+		if (!err) {
+			me.emit ("open", res);
+		}
+		return callback();
+	});
 	return this;
 }
 

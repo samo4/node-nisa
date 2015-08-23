@@ -67,14 +67,13 @@ namespace raw {
       static void aCallback(uv_async_t *async, int status);
       
       static void StaticOpen(uv_work_t* req);
-      void EIO_Open(GenericBaton* baton);
-      static void EIO_AfterOpen(uv_work_t* req);
+      void EIO_Open(QueuedWrite* queuedWrite);
       
       static void StaticWrite(uv_work_t* req);
-      void EIO_Write(QueuedWrite* baton);
+      void EIO_Write(QueuedWrite* queuedWrite);
       
       static void StaticRead(uv_work_t* req);
-      void EIO_Read(QueuedWrite* baton);
+      void EIO_Read(QueuedWrite* queuedWrite);
       
       static void StaticQuery(uv_work_t* req);
       void EIO_Query(QueuedWrite* queuedWrite);

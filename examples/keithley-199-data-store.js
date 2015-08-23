@@ -1,4 +1,7 @@
+
+console.log("1");
 var async = require('async');
+
 var Visa = require ("../nisa.js").Visa;
 
 var DeviationStream = require('standard-deviation-stream');
@@ -7,6 +10,8 @@ var DeviationStream = require('standard-deviation-stream');
 var kei199 = new Visa("GPIB0::26::INSTR");
 
 var numberOfMeasurements = 20;
+
+console.log("mijav");
 
 kei199.on('srq', function(stb) {
     if (!stb)

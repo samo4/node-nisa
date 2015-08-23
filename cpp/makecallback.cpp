@@ -31,9 +31,6 @@ const char* raw_strerror (int code) {
 #endif
 }
 
-
-  
-
 namespace raw {
   using namespace v8;
   
@@ -120,7 +117,7 @@ namespace raw {
   
   NAN_METHOD(VisaEmitter::Open) {
     NanScope();
-    VisaEmitter* ve = ObjectWrap::Unwrap<VisaEmitter>(args.This());
+    VisaEmitter* obj = ObjectWrap::Unwrap<VisaEmitter>(args.This());
     uv_mutex_init(&write_queue_mutex);
     QUEUE_INIT(&write_queue);
     
@@ -131,14 +128,20 @@ namespace raw {
     Local<Function> callback = args[0].As<Function>();
     
     GenericBaton* baton = new GenericBaton();
-    memset(baton, 0, sizeof(GenericBaton));
-    strcpy(baton->command, ve->address_->c_str());
-    baton->callback = new NanCallback(callback);
-
-    uv_work_t* req = new uv_work_t();
-    baton->obj = ve;
-    req->data = baton;
-    uv_queue_work(uv_default_loop(), req, VisaEmitter::StaticOpen, (uv_after_work_cb)VisaEmitter::EIO_AfterOpen);    
+		memset(baton, 0, sizeof(GenericBaton));
+		strcpy(baton->errorString, "");
+		strcpy(baton->command, "");
+		baton->callback = new NanCallback(callback);
+		
+		uv_work_t* req = new uv_work_t();
+  	req->data = baton;
+		QueuedWrite* queuedWrite = new QueuedWrite();
+		memset(queuedWrite, 0, sizeof(QueuedWrite));
+		queuedWrite->baton = baton;
+		queuedWrite->req.data = queuedWrite;
+		queuedWrite->obj = obj;
+    
+    uv_queue_work(uv_default_loop(), &queuedWrite->req, VisaEmitter::StaticOpen, (uv_after_work_cb)VisaEmitter::EIO_AfterAll);    
     NanReturnUndefined();
   }
   
@@ -238,18 +241,10 @@ namespace raw {
   
 		QueuedWrite* queuedWrite = new QueuedWrite();
 		memset(queuedWrite, 0, sizeof(QueuedWrite));
-		//QUEUE_INIT(&queuedWrite->queue);
 		queuedWrite->baton = baton;
 		queuedWrite->req.data = queuedWrite;
 		queuedWrite->obj = obj;
-    /* uv_mutex_lock(&write_queue_mutex);
-    bool empty = QUEUE_EMPTY(&write_queue);
-    QUEUE_INSERT_TAIL(&write_queue, &queuedWrite->queue);
-    if (empty) { */
     uv_queue_work(uv_default_loop(), &queuedWrite->req, VisaEmitter::StaticQuery, (uv_after_work_cb)VisaEmitter::EIO_AfterAll);
-    /*}
-    uv_mutex_unlock(&write_queue_mutex); 
-    */
     NanReturnUndefined();
   }
   
@@ -261,7 +256,6 @@ namespace raw {
 		memset(queuedWrite, 0, sizeof(QueuedWrite));
 		queuedWrite->req.data = queuedWrite;
 		queuedWrite->obj = obj;
-    
     uv_queue_work(uv_default_loop(), &queuedWrite->req, VisaEmitter::StaticTrigger, NULL);
   }
   
