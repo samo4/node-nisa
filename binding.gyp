@@ -12,8 +12,8 @@
     "conditions": 
     [
         ['OS=="win"', {
-          "target_name" : "makecallback", 
-          "sources"     : [ "cpp/makecallback.cpp", "cpp/visa.cpp" ], 
+          "target_name" : "nisa", 
+          "sources"     : [ "cpp/nisa.cpp", "cpp/nisa_win.cpp" ], 
           "include_dirs": [
                 'C:\Program Files\IVI Foundation\VISA\Win64\Include'
               ], 
@@ -29,7 +29,7 @@
         }
        }],
        ['OS=="mac"', {
-          "target_name" : "makecallback", 
+          "target_name" : "nisa", 
           "sources"     : [ "cpp/makecallback.cpp", "cpp/visa.cpp" ],
           "include_dirs": [ "/Library/Frameworks/Visa.framework/Headers" ], 
           "link_settings": {

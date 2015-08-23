@@ -26,21 +26,25 @@ kei199.on('srq', function(stb) {
 
 kei199.on('open', function(res) {
    console.log("recieved open event.." + res);
-   kei199.write("M1X", function(err, res) { //enable SRQ    
-        var n = new DeviationStream();
-
-        if (err) {
-            console.log("open err:  " + err);    
-        } else {
-            setInterval(function() {
-                    kei199.query("G1F0R3X", function (err, res) {
-                    var value = Number(res);
-                    n.push(value);
-                    process.stdout.write(" " + value + "; Mean:" + n.mean() + " sd: " + n.standardDeviation() + "\r");
-                });
-            }, 250);
-        }    
-    });
+   kei199.deviceClear(function (err, res) {
+        if (!err) {
+            kei199.write("M1X", function(err, res) { //enable SRQ    
+                var n = new DeviationStream();
+        
+                if (err) {
+                    console.log("open err:  " + err);    
+                } else {
+                    setInterval(function() {
+                            kei199.query("G1F0R3X", function (err, res) {
+                            var value = Number(res);
+                            n.push(value);
+                            process.stdout.write(" " + value + "; Mean:" + n.mean() + " sd: " + n.standardDeviation() + "\r");
+                        });
+                    }, 250);
+                }    
+            });
+        }
+   });
 });
 kei199.open(function (err, res) {
     if (err) {

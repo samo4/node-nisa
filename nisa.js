@@ -1,4 +1,4 @@
-var raw = require('bindings')({ bindings: 'makecallback' });
+var raw = require('bindings')({ bindings: 'nisa' });
 var EventEmitter = require('events').EventEmitter;
 var util = require ("util");
 

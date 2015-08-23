@@ -1,5 +1,5 @@
-#ifndef _H_MAKE_CALLBACK_
-#define _H_MAKE_CALLBACK_
+#ifndef _H_NISA_
+#define _H_NISA_
 
 // source: https://bitbucket.org/stephenwvickers/node-raw-socket
 
