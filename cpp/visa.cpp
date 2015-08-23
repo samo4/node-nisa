@@ -190,20 +190,23 @@ namespace raw {
   /* device clear */
   
   void VisaEmitter::EIO_DeviceClear(QueuedWrite* queuedWrite) {
+    
     GenericBaton* data = static_cast<GenericBaton*>(queuedWrite->baton);
     if (!this->isConnected || session < 1) {
 			ErrorCodeToString("not connected", 11, data->errorString);
 			return;
 		}
+    
     char temp[QUERY_STRING_SIZE];
     ViStatus status = viClear(session);
+    
     if ((status < VI_SUCCESS)) {
       _snprintf(temp, sizeof(temp), "%d viClear", session);
       printf("status < VI_SUCCESS");
       ErrorCodeToString(temp, status, data->errorString);
       return;
     } 
-    data->result[0] = 0;
+    _snprintf_s(data->result, _countof(data->result), _TRUNCATE, "%d", 0);
   }
   
   void VisaEmitter::StaticDeviceClear(uv_work_t* req) {
@@ -219,7 +222,8 @@ namespace raw {
 		QueuedWrite* queuedWrite = static_cast<QueuedWrite*>(req->data);
 		GenericBaton* baton = static_cast<GenericBaton*>(queuedWrite->baton);
 		Handle<Value> argv[2];
-    
+    printf("Mijavv\n");
+    printf("Mijavres %s\n", baton->result);
     //GenericBaton* baton = static_cast<GenericBaton*>(req->data);
 		if(baton->errorString[0]) {
 			argv[0] = Exception::Error(NanNew<String>(baton->errorString));

@@ -44,8 +44,8 @@ VisaPort.prototype.read = function (callback) {
 	return this;
 }
 
-VisaPort.prototype.trigger = function() {
-	this.wrap.trigger();
+VisaPort.prototype.trigger = function(callback) {
+	this.wrap.trigger(callback);
 	return this;
 }
 

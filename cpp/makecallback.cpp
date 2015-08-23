@@ -252,9 +252,26 @@ namespace raw {
   NAN_METHOD(VisaEmitter::Trigger) {
     NanScope();
     VisaEmitter* obj = ObjectWrap::Unwrap<VisaEmitter>(args.This());
+    uv_mutex_init(&write_queue_mutex);
+    QUEUE_INIT(&write_queue);
     
-    QueuedWrite* queuedWrite = new QueuedWrite();
+    if(!args[0]->IsFunction()) {
+      NanThrowTypeError("Argument must be a function");
+      NanReturnUndefined();
+    }
+    Local<Function> callback = args[0].As<Function>();
+    
+    GenericBaton* baton = new GenericBaton();
+		memset(baton, 0, sizeof(GenericBaton));
+		strcpy(baton->errorString, "");
+    strcpy(baton->command, obj->address_->c_str());
+		baton->callback = new NanCallback(callback);
+		
+		uv_work_t* req = new uv_work_t();
+  	req->data = baton;
+		QueuedWrite* queuedWrite = new QueuedWrite();
 		memset(queuedWrite, 0, sizeof(QueuedWrite));
+		queuedWrite->baton = baton;
 		queuedWrite->req.data = queuedWrite;
 		queuedWrite->obj = obj;
     uv_queue_work(uv_default_loop(), &queuedWrite->req, VisaEmitter::StaticTrigger, NULL);
@@ -263,22 +280,29 @@ namespace raw {
   NAN_METHOD(VisaEmitter::DeviceClear) {
     NanScope();
     VisaEmitter* obj = ObjectWrap::Unwrap<VisaEmitter>(args.This());
-		if(!args[0]->IsFunction()) {
-			NanThrowTypeError("argument must be a function: err, res");
-			NanReturnUndefined();
-		}
-		Local<Function> callback = args[0].As<Function>();
-		GenericBaton* baton = new GenericBaton();
+    uv_mutex_init(&write_queue_mutex);
+    QUEUE_INIT(&write_queue);
+    
+    if(!args[0]->IsFunction()) {
+      NanThrowTypeError("Argument must be a function");
+      NanReturnUndefined();
+    }
+    Local<Function> callback = args[0].As<Function>();
+    
+    GenericBaton* baton = new GenericBaton();
 		memset(baton, 0, sizeof(GenericBaton));
 		strcpy(baton->errorString, "");
+    strcpy(baton->command, "");
 		baton->callback = new NanCallback(callback);
-    uv_work_t* req = new uv_work_t();
+		
+		uv_work_t* req = new uv_work_t();
   	req->data = baton;
 		QueuedWrite* queuedWrite = new QueuedWrite();
 		memset(queuedWrite, 0, sizeof(QueuedWrite));
+		queuedWrite->baton = baton;
 		queuedWrite->req.data = queuedWrite;
 		queuedWrite->obj = obj;
-    uv_queue_work(uv_default_loop(), &queuedWrite->req, VisaEmitter::StaticDeviceClear,  (uv_after_work_cb)EIO_AfterAll);
+    uv_queue_work(uv_default_loop(), &queuedWrite->req, VisaEmitter::StaticDeviceClear,  (uv_after_work_cb)VisaEmitter::EIO_AfterAll);
   }
   
   void VisaEmitter::HandleHardwareEvent (int status, int srqStatus) {
