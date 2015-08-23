@@ -130,7 +130,7 @@ namespace raw {
     GenericBaton* baton = new GenericBaton();
 		memset(baton, 0, sizeof(GenericBaton));
 		strcpy(baton->errorString, "");
-		strcpy(baton->command, "");
+    strcpy(baton->command, obj->address_->c_str());
 		baton->callback = new NanCallback(callback);
 		
 		uv_work_t* req = new uv_work_t();

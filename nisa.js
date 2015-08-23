@@ -23,7 +23,7 @@ VisaPort.prototype.open = function (callback) {
 			me.emit ("open", res);
 		} else {
 			console.log("ERR: ", err);
-		}
+		}  
 		return callback();
 	});
 	return this;

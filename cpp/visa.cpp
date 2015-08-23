@@ -18,13 +18,13 @@ namespace raw {
     ViStatus status;
     if (this->isConnected)
     {
-      _snprintf(temp, sizeof(temp), "Already connected %s", data->command);
+      _snprintf(temp, sizeof(temp), "Already connected %s", session);
       ErrorCodeToString(temp, status, data->errorString);
       return;
     }
     status = viOpenDefaultRM(&defaultRM);
     if (status < VI_SUCCESS) {
-      _snprintf(temp, sizeof(temp), "Opening RM for: %s", data->command);
+      _snprintf(temp, sizeof(temp), "Opening RM");
       ErrorCodeToString(temp, status, data->errorString);
       return;
     }
@@ -198,7 +198,6 @@ namespace raw {
 		Handle<Value> argv[2];
     
     //GenericBaton* baton = static_cast<GenericBaton*>(req->data);
-    printf("EIO_AfterAll\n");
 		if(baton->errorString[0]) {
 			argv[0] = Exception::Error(NanNew<String>(baton->errorString));
 			argv[1] = NanUndefined();
@@ -206,7 +205,6 @@ namespace raw {
 			argv[0] = NanUndefined();
 			argv[1] = NanNew(baton->result);
 		}
-    printf("EIO_AfterAll\n");
 		baton->callback->Call(2, argv);
 		
     // NanDisposePersistent(baton->buffer);

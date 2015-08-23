@@ -1,7 +1,4 @@
-
-console.log("1");
 var async = require('async');
-
 var Visa = require ("../nisa.js").Visa;
 
 var DeviationStream = require('standard-deviation-stream');
@@ -10,8 +7,6 @@ var DeviationStream = require('standard-deviation-stream');
 var kei199 = new Visa("GPIB0::26::INSTR");
 
 var numberOfMeasurements = 20;
-
-console.log("mijav");
 
 kei199.on('srq', function(stb) {
     if (!stb)
@@ -63,7 +58,7 @@ async.series ([
   function(callback) { kei199.open(callback); }, 
   function(callback) { kei199.write("M1X", callback) }, // 2-pole; scientific notation; DCV 3V;  
   function(callback) { setTimeout(callback, 500) },  
-  function(callback) { kei199.write("O0G1F0R2X", callback) }, // 2-pole; scientific notation; DCV 3V;  
+  function(callback) { kei199.write("O0G1F0R3X", callback) }, // 2-pole; scientific notation; DCV 3V;  
   function(callback) { setTimeout(callback, 500) }, 
   function(callback) { kei199.write("N0Q250T2X", callback) }, // one channel per store interval; 250ms interval; continious GET
   function(callback) { setTimeout(callback, 500) }, 
