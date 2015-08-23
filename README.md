@@ -17,6 +17,9 @@ visa.query("GPIB0::12::INSTR", "*IDN?", function(err, result) {
  // do something
 }
 ```
+
+## Etymology
+VISA is the name of the library.. merged with node.js it becomes "nisa"
 ## Known limitations and bugs
 Due to lack of interest (it works for me) and more importantly lack of knowledgem, the current implementation includes some memory leaks.
 The implemented functions were selected solely to control my current setup. This is not meant to be a complete implementation of VISA interface. API was adapted to my undestanding of node ways to my best efforts.
