@@ -19,9 +19,10 @@ VisaPort.prototype.open = function (callback) {
 	var me = this;
 	
 	this.wrap.open(function(err, res) {
-		console.log("mijav1111");
 		if (!err) {
 			me.emit ("open", res);
+		} else {
+			console.log("ERR: ", err);
 		}
 		return callback();
 	});
