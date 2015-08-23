@@ -59,6 +59,7 @@ namespace raw {
       static NAN_METHOD(Read);
       static NAN_METHOD(Query);
       static NAN_METHOD(Trigger);
+      static NAN_METHOD(DeviceClear);
       
       uv_async_t m_async;
       
@@ -80,6 +81,9 @@ namespace raw {
       
       static void StaticTrigger(uv_work_t* req);
       void EIO_Trigger(QueuedWrite* queuedWrite);
+      
+      static void StaticDeviceClear(uv_work_t* req);
+      void EIO_DeviceClear(QueuedWrite* queuedWrite);
       
       static void EIO_AfterAll(uv_work_t* req);
   }; 

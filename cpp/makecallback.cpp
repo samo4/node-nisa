@@ -87,6 +87,7 @@ namespace raw {
     NODE_SET_PROTOTYPE_METHOD(tpl, "read", Read);
     NODE_SET_PROTOTYPE_METHOD(tpl, "query", Query);
     NODE_SET_PROTOTYPE_METHOD(tpl, "trigger", Trigger);
+    NODE_SET_PROTOTYPE_METHOD(tpl, "deviceClear", DeviceClear);
   }
   
   NAN_METHOD(VisaEmitter::New) {
@@ -257,6 +258,27 @@ namespace raw {
 		queuedWrite->req.data = queuedWrite;
 		queuedWrite->obj = obj;
     uv_queue_work(uv_default_loop(), &queuedWrite->req, VisaEmitter::StaticTrigger, NULL);
+  }
+  
+  NAN_METHOD(VisaEmitter::DeviceClear) {
+    NanScope();
+    VisaEmitter* obj = ObjectWrap::Unwrap<VisaEmitter>(args.This());
+		if(!args[0]->IsFunction()) {
+			NanThrowTypeError("argument must be a function: err, res");
+			NanReturnUndefined();
+		}
+		Local<Function> callback = args[0].As<Function>();
+		GenericBaton* baton = new GenericBaton();
+		memset(baton, 0, sizeof(GenericBaton));
+		strcpy(baton->errorString, "");
+		baton->callback = new NanCallback(callback);
+    uv_work_t* req = new uv_work_t();
+  	req->data = baton;
+		QueuedWrite* queuedWrite = new QueuedWrite();
+		memset(queuedWrite, 0, sizeof(QueuedWrite));
+		queuedWrite->req.data = queuedWrite;
+		queuedWrite->obj = obj;
+    uv_queue_work(uv_default_loop(), &queuedWrite->req, VisaEmitter::StaticDeviceClear,  (uv_after_work_cb)EIO_AfterAll);
   }
   
   void VisaEmitter::HandleHardwareEvent (int status, int srqStatus) {

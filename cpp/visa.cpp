@@ -166,7 +166,6 @@ namespace raw {
   
   void VisaEmitter::EIO_Trigger(QueuedWrite* queuedWrite) {
     GenericBaton* data = static_cast<GenericBaton*>(queuedWrite->baton);
-    printf("viAssertTrigger");
     if (!this->isConnected || session < 1) {
 			ErrorCodeToString("not connected", 11, data->errorString);
       printf("not connected");
@@ -182,11 +181,35 @@ namespace raw {
     } 
   }
   
-  
   void VisaEmitter::StaticTrigger(uv_work_t* req) {
     QueuedWrite* data = static_cast<QueuedWrite*>(req->data);	
     VisaEmitter* obj = static_cast<VisaEmitter*>(data->obj);
     obj->EIO_Trigger(data);
+  }
+  
+  /* device clear */
+  
+  void VisaEmitter::EIO_DeviceClear(QueuedWrite* queuedWrite) {
+    GenericBaton* data = static_cast<GenericBaton*>(queuedWrite->baton);
+    if (!this->isConnected || session < 1) {
+			ErrorCodeToString("not connected", 11, data->errorString);
+			return;
+		}
+    char temp[QUERY_STRING_SIZE];
+    ViStatus status = viClear(session);
+    if ((status < VI_SUCCESS)) {
+      _snprintf(temp, sizeof(temp), "%d viClear", session);
+      printf("status < VI_SUCCESS");
+      ErrorCodeToString(temp, status, data->errorString);
+      return;
+    } 
+    data->result[0] = 0;
+  }
+  
+  void VisaEmitter::StaticDeviceClear(uv_work_t* req) {
+    QueuedWrite* data = static_cast<QueuedWrite*>(req->data);	
+    VisaEmitter* obj = static_cast<VisaEmitter*>(data->obj);
+    obj->EIO_DeviceClear(data);
   }
   
   /* after all after all after all after all after all after all after all after all after all after all after all after all after all after all */
