@@ -97,7 +97,7 @@ namespace raw {
 			ErrorCodeToString(temp, status, data->errorString);
 			return;
 		}
-		data->result[0] = 0;
+    _snprintf_s(data->result, _countof(data->result), _TRUNCATE, "%d", returnCount); 
 	}
   
   /* READ READ READ */
@@ -126,9 +126,7 @@ namespace raw {
 			ErrorCodeToString(temp, status, data->errorString);
 			return;
 		}
-    //printf("DONE viRead (%d) %s\n", returnCount, temp);
-    _snprintf(data->result, QUERY_STRING_SIZE, "%s", temp);
-		data->result[strlen(temp)-1] = 0; // ??
+    _snprintf_s(data->result, _countof(data->result), _TRUNCATE, "%s", temp);
 	}  
   
   /* QUERY QUERY */
@@ -179,6 +177,7 @@ namespace raw {
       ErrorCodeToString(temp, status, data->errorString);
       return;
     } 
+    _snprintf_s(data->result, _countof(data->result), _TRUNCATE, "%d", 0);
   }
   
   void VisaEmitter::StaticTrigger(uv_work_t* req) {
@@ -222,9 +221,6 @@ namespace raw {
 		QueuedWrite* queuedWrite = static_cast<QueuedWrite*>(req->data);
 		GenericBaton* baton = static_cast<GenericBaton*>(queuedWrite->baton);
 		Handle<Value> argv[2];
-    printf("Mijavv\n");
-    printf("Mijavres %s\n", baton->result);
-    //GenericBaton* baton = static_cast<GenericBaton*>(req->data);
 		if(baton->errorString[0]) {
 			argv[0] = Exception::Error(NanNew<String>(baton->errorString));
 			argv[1] = NanUndefined();
@@ -233,10 +229,8 @@ namespace raw {
 			argv[1] = NanNew(baton->result);
 		}
 		baton->callback->Call(2, argv);
-		
-    // NanDisposePersistent(baton->buffer);
+
     delete baton->callback;
-    // delete baton->cmd;
     delete baton;
     delete queuedWrite;
 	}
