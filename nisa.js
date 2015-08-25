@@ -6,11 +6,22 @@ for (var key in EventEmitter.prototype) {
   raw.VisaEmitter.prototype[key] = EventEmitter.prototype[key];
 }
 
+var _options = {
+    enableSRQ: true,
+    assertREN: true
+}
+
 function VisaPort(path, options) {
 	VisaPort.super_.call (this);
+	
+	var self = this;
+    options = (typeof options !== 'function') && options || {};
+	var opts = {};
+	opts.enableSRQ = options.enableSRQ || _options.enableSRQ;
+	opts.assertREN = options.assertREN || _options.assertREN;
+	this.options = opts;
 	this.wrap = new raw.VisaEmitter(path);
-	var me = this;
-	this.wrap.on ("srq", this.onSrq.bind (me));
+	this.wrap.on ("srq", this.onSrq.bind (self));
 }
 
 util.inherits (VisaPort, EventEmitter);
@@ -18,7 +29,7 @@ util.inherits (VisaPort, EventEmitter);
 VisaPort.prototype.open = function (callback) {
 	var me = this;
 	
-	this.wrap.open(function(err, res) {
+	this.wrap.open(this.options, function(err, res) {
 		if (!err) {
 			me.emit ("open", res);
 		} else {
