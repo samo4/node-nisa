@@ -25,7 +25,7 @@
 
 	// use the standard tsc problem matcher to find compile problems
 	// in the output.
-	"problemMatcher": "$npm"
+	"problemMatcher": "$tsc"
 }
 
 // A task runner that calls the Typescript compiler (tsc) and

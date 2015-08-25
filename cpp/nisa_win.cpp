@@ -40,6 +40,8 @@ namespace raw {
       ErrorCodeToString(temp, status, data->errorString);
       return;
     }
+    
+    this->isConnected = true;
     // status = viSetAttribute(instr, VI_ATTR_SEND_END_EN, VI_TRUE);
     // terminate reads on a carriage return  0x0a 0x0d
     // LF (Line feed, '\n', 0x0A, 10 in decimal) 
@@ -48,28 +50,30 @@ namespace raw {
     // status = viSetAttribute(session, VI_ATTR_TERMCHAR, 0x0A);
     //status = viSetAttribute(session, VI_ATTR_TERMCHAR_EN, VI_TRUE);
     
-    if (status >= VI_SUCCESS) // TODO and if we're enabling events 
+    if (data->assertREN) {
+      viGpibControlREN(session, VI_GPIB_REN_ASSERT);
+    }
+    
+    if (data->enableSRQ)  
     {
       m_async = uv_async_t();
       m_async.data = this;    
-      uv_async_init(uv_default_loop(), &m_async, reinterpret_cast<uv_async_cb>(aCallback));      
-    }
-    
-    viGpibControlREN(session, VI_GPIB_REN_ASSERT); // TODO!!!! this should be handled by options...
-    
-    ViBuf bufferHandle;
-		ViEventType etype;
-		ViEvent eventContext;
-		status = viInstallHandler(session, VI_EVENT_SERVICE_REQ, callback, bufferHandle);
-    if (status >= VI_SUCCESS) {
-		  status = viEnableEvent(session, VI_EVENT_SERVICE_REQ, VI_HNDLR, VI_NULL);
-    }  
-    if (status < VI_SUCCESS) {
-      _snprintf(temp, sizeof(temp), "Post AfterOpenSuccess session %s", data->command);
-      ErrorCodeToString(temp, status, data->errorString);
-      return;
-    }
-    this->isConnected = true;  
+      uv_async_init(uv_default_loop(), &m_async, reinterpret_cast<uv_async_cb>(aCallback));
+      
+      ViBuf bufferHandle;
+      ViEventType etype;
+      ViEvent eventContext;
+      status = viInstallHandler(session, VI_EVENT_SERVICE_REQ, callback, bufferHandle);
+      if (status >= VI_SUCCESS) {
+        status = viEnableEvent(session, VI_EVENT_SERVICE_REQ, VI_HNDLR, VI_NULL);
+      }  
+      if (status < VI_SUCCESS) {
+        _snprintf(temp, sizeof(temp), "Post AfterOpenSuccess session %s", data->command);
+        ErrorCodeToString(temp, status, data->errorString);
+        return;
+      }        
+    }    
+      
     _snprintf_s(data->result, _countof(data->result), _TRUNCATE, "%d", session);
   }
   

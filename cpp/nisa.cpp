@@ -117,17 +117,25 @@ namespace raw {
     NanScope();
     VisaEmitter* obj = ObjectWrap::Unwrap<VisaEmitter>(args.This());
     
-    if(!args[0]->IsFunction()) {
-      NanThrowTypeError("Argument must be a function");
+    if(!args[0]->IsObject()) {
+      NanThrowTypeError("First argument must be an options object.");
       NanReturnUndefined();
     }
-    Local<Function> callback = args[0].As<Function>();
+    Local<Object> options = args[0]->ToObject();
+    
+    if(!args[1]->IsFunction()) {
+      NanThrowTypeError("Second argument must be a function (err, res)");
+      NanReturnUndefined();
+    }
+    Local<Function> callback = args[1].As<Function>();
     
     GenericBaton* baton = new GenericBaton();
 		memset(baton, 0, sizeof(GenericBaton));
 		strcpy(baton->errorString, "");
     strcpy(baton->command, obj->address_->c_str());
 		baton->callback = new NanCallback(callback);
+    baton->enableSRQ = options->Get(NanNew<String>("enableSRQ"))->ToBoolean()->BooleanValue();
+    baton->assertREN = options->Get(NanNew<String>("assertREN"))->ToBoolean()->BooleanValue();
 		
 		uv_work_t* req = new uv_work_t();
   	req->data = baton;

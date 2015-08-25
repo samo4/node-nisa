@@ -96,6 +96,9 @@ namespace raw {
       VisaEmitter* obj;
       char result[QUERY_STRING_SIZE];
       char errorString[ERROR_STRING_SIZE];
+      // properties below are used only for Open 
+      bool enableSRQ;
+      bool assertREN;
   };
   
   struct ListBaton {
