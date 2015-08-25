@@ -71,8 +71,7 @@ namespace raw {
   
 	/* WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE  */
 	
-	void VisaEmitter::EIO_Write(QueuedWrite* queuedWrite) {
-		GenericBaton* data = static_cast<GenericBaton*>(queuedWrite->baton);
+	void VisaEmitter::EIO_Write(GenericBaton* data) {
 		if (!sizeof(data->command) || !this->isConnected || session < 1) {
 			ErrorCodeToString("not connected or bad empty command", 11, data->errorString);
 			return;

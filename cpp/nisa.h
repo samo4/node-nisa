@@ -63,22 +63,22 @@ namespace raw {
       static void aCallback(uv_async_t *async, int status);
       
       static void StaticOpen(uv_work_t* req);
-      void EIO_Open(QueuedWrite* queuedWrite);
+      void EIO_Open(GenericBaton* data);
       
       static void StaticWrite(uv_work_t* req);
-      void EIO_Write(QueuedWrite* queuedWrite);
+      void VisaEmitter::EIO_Write(GenericBaton* data);
       
       static void StaticRead(uv_work_t* req);
-      void EIO_Read(QueuedWrite* queuedWrite);
+      void EIO_Read(GenericBaton* data);
       
       static void StaticQuery(uv_work_t* req);
-      void EIO_Query(QueuedWrite* queuedWrite);
+      void EIO_Query(GenericBaton* data);
       
       static void StaticTrigger(uv_work_t* req);
-      void EIO_Trigger(QueuedWrite* queuedWrite);
+      void EIO_Trigger(GenericBaton* data);
       
       static void StaticDeviceClear(uv_work_t* req);
-      void EIO_DeviceClear(QueuedWrite* queuedWrite);
+      void EIO_DeviceClear(GenericBaton* data);
       
       static void EIO_AfterAll(uv_work_t* req);
   }; 
