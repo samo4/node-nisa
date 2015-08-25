@@ -33,9 +33,6 @@ const char* raw_strerror (int code) {
 
 namespace raw {
   using namespace v8;
-  
-  uv_mutex_t write_queue_mutex;
-  QUEUE write_queue;
 
   ViSession VisaEmitter::defaultRM;
   static Persistent<FunctionTemplate> _constructor;
@@ -119,8 +116,6 @@ namespace raw {
   NAN_METHOD(VisaEmitter::Open) {
     NanScope();
     VisaEmitter* obj = ObjectWrap::Unwrap<VisaEmitter>(args.This());
-    uv_mutex_init(&write_queue_mutex);
-    QUEUE_INIT(&write_queue);
     
     if(!args[0]->IsFunction()) {
       NanThrowTypeError("Argument must be a function");
@@ -252,8 +247,6 @@ namespace raw {
   NAN_METHOD(VisaEmitter::Trigger) {
     NanScope();
     VisaEmitter* obj = ObjectWrap::Unwrap<VisaEmitter>(args.This());
-    uv_mutex_init(&write_queue_mutex);
-    QUEUE_INIT(&write_queue);
     
     if(!args[0]->IsFunction()) {
       NanThrowTypeError("Argument must be a function");
@@ -280,8 +273,6 @@ namespace raw {
   NAN_METHOD(VisaEmitter::DeviceClear) {
     NanScope();
     VisaEmitter* obj = ObjectWrap::Unwrap<VisaEmitter>(args.This());
-    uv_mutex_init(&write_queue_mutex);
-    QUEUE_INIT(&write_queue);
     
     if(!args[0]->IsFunction()) {
       NanThrowTypeError("Argument must be a function");

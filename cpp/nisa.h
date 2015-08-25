@@ -16,19 +16,14 @@
 #include <vector>
 #include <list>
 
-#include "queue.h"
-
 #define MAX_INSTANCES 50
 #define ERROR_STRING_SIZE 1024
 #define QUERY_STRING_SIZE 40240
 
 using namespace v8;
 
-
-
 namespace raw {
   struct ListBaton;
-  struct OpenBaton;
   struct GenericBaton;
   struct QueuedWrite;
   
@@ -114,7 +109,6 @@ namespace raw {
   struct QueuedWrite {
     public:
       uv_work_t req;
-      QUEUE queue;
       GenericBaton* baton;
       VisaEmitter* obj;
   };
