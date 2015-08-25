@@ -13,7 +13,7 @@
     [
         ['OS=="win"', {
           "target_name" : "nisa", 
-          "sources"     : [ "cpp/nisa.cpp", "cpp/nisa_win.cpp" ], 
+          "sources"     : [ "cpp/nisa.cpp", "cpp/nisa_win.cpp", "cpp/nisa_static_helpers.cpp" ], 
           "include_dirs": [
                 'C:\Program Files\IVI Foundation\VISA\Win64\Include'
               ], 

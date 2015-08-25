@@ -5,17 +5,11 @@ namespace raw {
 	
   /* OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN */
   
-  void VisaEmitter::StaticOpen(uv_work_t* req) {
-    QueuedWrite* data = static_cast<QueuedWrite*>(req->data);	
-		VisaEmitter* obj = static_cast<VisaEmitter*>(data->obj);
-    obj->EIO_Open(data);
-  } 
-  
   void VisaEmitter::EIO_Open(QueuedWrite* queuedWrite) {
 		GenericBaton* data = static_cast<GenericBaton*>(queuedWrite->baton);
       
     char temp[QUERY_STRING_SIZE];
-    ViStatus status;
+    ViStatus status = -1;
     if (this->isConnected)
     {
       _snprintf(temp, sizeof(temp), "Already connected %s", session);
@@ -60,9 +54,7 @@ namespace raw {
       m_async.data = this;    
       uv_async_init(uv_default_loop(), &m_async, reinterpret_cast<uv_async_cb>(aCallback));
       
-      ViBuf bufferHandle;
-      ViEventType etype;
-      ViEvent eventContext;
+      ViBuf bufferHandle = (ViBuf)malloc(ERROR_STRING_SIZE);
       status = viInstallHandler(session, VI_EVENT_SERVICE_REQ, callback, bufferHandle);
       if (status >= VI_SUCCESS) {
         status = viEnableEvent(session, VI_EVENT_SERVICE_REQ, VI_HNDLR, VI_NULL);
@@ -78,11 +70,6 @@ namespace raw {
   }
   
 	/* WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE WRITE  */
-	void VisaEmitter::StaticWrite(uv_work_t* req) {
-		QueuedWrite* data = static_cast<QueuedWrite*>(req->data);	
-		VisaEmitter* obj = static_cast<VisaEmitter*>(data->obj);
-		obj->EIO_Write(data);
-	}
 	
 	void VisaEmitter::EIO_Write(QueuedWrite* queuedWrite) {
 		GenericBaton* data = static_cast<GenericBaton*>(queuedWrite->baton);
@@ -95,9 +82,9 @@ namespace raw {
 		memset(temp, 0, sizeof(temp));
 		ViInt32 rdBufferSize = sizeof(temp);
 		ViUInt32 returnCount;
-		ViStatus status = viWrite(session, (ViBuf)data->command, strlen(data->command), &returnCount);
+		ViStatus status = viWrite(session, (ViBuf)data->command, (ViUInt32) strlen(data->command), &returnCount);
 		if ((status < VI_SUCCESS)) {
-			_snprintf(temp, sizeof(temp), "%d viWrite, query: %s string length: %d", session, data->command, strlen(data->command));
+			_snprintf(temp, sizeof(temp), "%d viWrite, query: %s string length: %d; wrote: %d", session, data->command, strlen(data->command), returnCount);
 			ErrorCodeToString(temp, status, data->errorString);
 			return;
 		}
@@ -105,12 +92,6 @@ namespace raw {
 	}
   
   /* READ READ READ */
-  
-  void VisaEmitter::StaticRead(uv_work_t* req) {
-		QueuedWrite* data = static_cast<QueuedWrite*>(req->data);	
-		VisaEmitter* obj = static_cast<VisaEmitter*>(data->obj);
-		obj->EIO_Read(data);
-	}
   
   void VisaEmitter::EIO_Read(QueuedWrite* queuedWrite) {
 		GenericBaton* data = static_cast<GenericBaton*>(queuedWrite->baton);
@@ -142,10 +123,6 @@ namespace raw {
 			return;
 		}
     char temp[QUERY_STRING_SIZE];
-    ViInt32 rdBufferSize = sizeof(temp);
-    ViUInt32 returnCount;
-    
-    //if (data->command[strlen(data->command)-1] == 63) { // if ends in ?
     ViChar rdBuffer[256];
     ViStatus status = viQueryf(session, (ViString)data->command, "%256[^,]%*T", rdBuffer);
     if ((status < VI_SUCCESS)) {
@@ -156,12 +133,6 @@ namespace raw {
     // this will not go down nicely on non-WIN32...
     _snprintf_s(data->result, _countof(data->result), _TRUNCATE, "%s", rdBuffer );  
     return;
-  }
-  
-  void VisaEmitter::StaticQuery(uv_work_t* req) {
-    QueuedWrite* data = static_cast<QueuedWrite*>(req->data);	
-    VisaEmitter* obj = static_cast<VisaEmitter*>(data->obj);
-    obj->EIO_Query(data);
   }
   
   /* TRIGGER TRIGGER */
@@ -182,12 +153,6 @@ namespace raw {
       return;
     } 
     _snprintf_s(data->result, _countof(data->result), _TRUNCATE, "%d", 0);
-  }
-  
-  void VisaEmitter::StaticTrigger(uv_work_t* req) {
-    QueuedWrite* data = static_cast<QueuedWrite*>(req->data);	
-    VisaEmitter* obj = static_cast<VisaEmitter*>(data->obj);
-    obj->EIO_Trigger(data);
   }
   
   /* device clear */
@@ -212,11 +177,7 @@ namespace raw {
     _snprintf_s(data->result, _countof(data->result), _TRUNCATE, "%d", 0);
   }
   
-  void VisaEmitter::StaticDeviceClear(uv_work_t* req) {
-    QueuedWrite* data = static_cast<QueuedWrite*>(req->data);	
-    VisaEmitter* obj = static_cast<VisaEmitter*>(data->obj);
-    obj->EIO_DeviceClear(data);
-  }
+  
   
   /* after all after all after all after all after all after all after all after all after all after all after all after all after all after all */
   
@@ -282,7 +243,6 @@ namespace raw {
   
   ViStatus _VI_FUNCH callback(ViSession session_, ViEventType etype, ViEvent eventContext, ViAddr userHandle)
   {
-    ViJobId jobID;
     ViStatus status;
     ViUInt16 stb;
     status = viReadSTB(session_, &stb);
