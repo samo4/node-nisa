@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <conio.h>
+// #include <conio.h>
 
 #include <string.h>
 #include <ctime>
@@ -107,7 +107,7 @@ namespace raw {
       //return args.This(); //return scope.Close(args.This());
       NanReturnThis();
     } else {
-      throw std::invalid_argument( "not sure if I know why this is good.. best if we throw exception for the moment" );
+      NanThrowTypeError("not sure if I know why this is good.. best if we throw exception for the moment" );
       /*const int argc = 2;
       Handle<Value> argv[argc];
       argv[0] = args[0]->ToString();

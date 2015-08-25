@@ -30,14 +30,17 @@
        }],
        ['OS=="mac"', {
           "target_name" : "nisa", 
-          "sources"     : [ "cpp/makecallback.cpp", "cpp/visa.cpp" ],
-          "include_dirs": [ "/Library/Frameworks/Visa.framework/Headers" ], 
+          "sources"     : [ "cpp/nisa.cpp", "cpp/nisa_win.cpp" ], 
+          "include_dirs": [ "/Library/Frameworks/VISA.framework/Headers" ],
           "link_settings": {
-              "library_dirs": ['/Library/Frameworks/Visa.framework/VISA'],
+              "library_dirs": ['/Library/Frameworks/VISA.framework'],
               "libraries": ['visa64']
             },
           "xcode_settings": {
-              'OTHER_LDFLAGS': [ '-framework CoreFoundation -framework IOKit' ]
+              'OTHER_LDFLAGS': [ '-framework CoreFoundation -framework IOKit' ],
+              'OTHER_CFLAGS': [
+                "-std=c++11"
+              ]
             }
        }]
      ]
