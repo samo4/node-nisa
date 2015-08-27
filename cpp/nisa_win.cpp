@@ -7,7 +7,7 @@ namespace raw {
   
   void VisaEmitter::EIO_Open(GenericBaton* data) {
 		//GenericBaton* data = static_cast<GenericBaton*>(queuedWrite->baton);
-      
+    printf("5");
     char temp[QUERY_STRING_SIZE];
     ViStatus status = -1;
     if (this->isConnected)
@@ -16,6 +16,7 @@ namespace raw {
       ErrorCodeToString(temp, status, data->errorString);
       return;
     }
+    printf("6");
     status = viOpenDefaultRM(&defaultRM);
     if (status < VI_SUCCESS) {
       _snprintf(temp, sizeof(temp), "Opening RM");
@@ -65,7 +66,7 @@ namespace raw {
         return;
       }        
     }    
-      
+      printf("7");
     _snprintf_s(data->result, _countof(data->result), _TRUNCATE, "%d", session);
   }
   
@@ -176,7 +177,28 @@ namespace raw {
   
   /* after all after all after all after all after all after all after all after all after all after all after all after all after all after all */
   
+  void VisaEmitter::EIO_AfterAll2(uv_work_t* req) {
+    printf("BB");
+    NanScope();
+    
+    GenericBaton* baton = static_cast<GenericBaton*>(req->data);
+      
+		Handle<Value> argv[2];
+		if(baton->errorString[0]) {
+			argv[0] = Exception::Error(NanNew<String>(baton->errorString));
+			argv[1] = NanUndefined();
+		} else {
+			argv[0] = NanUndefined();
+			argv[1] = NanNew(baton->result);
+		}
+		baton->callback->Call(2, argv);
+
+    delete baton->callback;
+    delete baton;
+	}
+  
   void VisaEmitter::EIO_AfterAll(uv_work_t* req) {
+    printf("aa");
     NanScope();
 		QueuedWrite* queuedWrite = static_cast<QueuedWrite*>(req->data);
 		GenericBaton* baton = static_cast<GenericBaton*>(queuedWrite->baton);

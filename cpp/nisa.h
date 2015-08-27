@@ -81,6 +81,7 @@ namespace raw {
       void EIO_DeviceClear(GenericBaton* data);
       
       static void EIO_AfterAll(uv_work_t* req);
+      static void EIO_AfterAll2(uv_work_t* req);
   }; 
   
   struct ListResultItem {

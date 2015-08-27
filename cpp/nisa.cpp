@@ -137,8 +137,8 @@ namespace raw {
     baton->enableSRQ = options->Get(NanNew<String>("enableSRQ"))->ToBoolean()->BooleanValue();
     baton->assertREN = options->Get(NanNew<String>("assertREN"))->ToBoolean()->BooleanValue();
     baton->obj = obj;
-    baton->req.data = baton;
-    uv_queue_work(uv_default_loop(), &baton->req, VisaEmitter::StaticOpen, (uv_after_work_cb)VisaEmitter::EIO_AfterAll);
+    baton->req.data = baton; //uv_work_t* req = new uv_work_t();
+    uv_queue_work(uv_default_loop(), &baton->req, VisaEmitter::StaticOpen, (uv_after_work_cb)VisaEmitter::EIO_AfterAll2);
 		
     /*
 		uv_work_t* req = new uv_work_t();
@@ -174,25 +174,9 @@ namespace raw {
 		strcpy(baton->errorString, "");
 		strcpy(baton->command, *cmd);
 		baton->callback = new NanCallback(callback);
-		
-		uv_work_t* req = new uv_work_t();
-  	req->data = baton;
-  
-		QueuedWrite* queuedWrite = new QueuedWrite();
-		memset(queuedWrite, 0, sizeof(QueuedWrite));
-		//QUEUE_INIT(&queuedWrite->queue);
-		queuedWrite->baton = baton;
-		queuedWrite->req.data = queuedWrite;
-		queuedWrite->obj = obj;
-
-		//uv_mutex_lock(&write_queue_mutex);
-		//bool empty = QUEUE_EMPTY(&write_queue);
-		//QUEUE_INSERT_TAIL(&write_queue, &queuedWrite->queue);
-		//if (empty) {
-			uv_queue_work(uv_default_loop(), &queuedWrite->req, VisaEmitter::StaticWrite, (uv_after_work_cb)VisaEmitter::EIO_AfterAll);
-		//}
-		//uv_mutex_unlock(&write_queue_mutex);
-		
+    baton->obj = obj;
+    baton->req.data = baton; //uv_work_t* req = new uv_work_t();
+    uv_queue_work(uv_default_loop(), &baton->req, VisaEmitter::StaticWrite, (uv_after_work_cb)VisaEmitter::EIO_AfterAll2);
 		NanReturnUndefined();
 	}
   
@@ -209,16 +193,9 @@ namespace raw {
 		memset(baton, 0, sizeof(GenericBaton));
 		strcpy(baton->errorString, "");
 		baton->callback = new NanCallback(callback);
-		
-		uv_work_t* req = new uv_work_t();
-  	req->data = baton;
-  
-		QueuedWrite* queuedWrite = new QueuedWrite();
-		memset(queuedWrite, 0, sizeof(QueuedWrite));
-		queuedWrite->baton = baton;
-		queuedWrite->req.data = queuedWrite;
-		queuedWrite->obj = obj;
-    uv_queue_work(uv_default_loop(), &queuedWrite->req, VisaEmitter::StaticRead, (uv_after_work_cb)VisaEmitter::EIO_AfterAll);
+    baton->obj = obj;
+    baton->req.data = baton; //uv_work_t* req = new uv_work_t();
+    uv_queue_work(uv_default_loop(), &baton->req, VisaEmitter::StaticRead, (uv_after_work_cb)VisaEmitter::EIO_AfterAll2);
 		NanReturnUndefined();
 	}
   
@@ -242,17 +219,9 @@ namespace raw {
 		memset(baton, 0, sizeof(GenericBaton));
 		strcpy(baton->errorString, "");
 		strcpy(baton->command, *cmd);
-		baton->callback = new NanCallback(callback);
-		
-		uv_work_t* req = new uv_work_t();
-  	req->data = baton;
-  
-		QueuedWrite* queuedWrite = new QueuedWrite();
-		memset(queuedWrite, 0, sizeof(QueuedWrite));
-		queuedWrite->baton = baton;
-		queuedWrite->req.data = queuedWrite;
-		queuedWrite->obj = obj;
-    uv_queue_work(uv_default_loop(), &queuedWrite->req, VisaEmitter::StaticQuery, (uv_after_work_cb)VisaEmitter::EIO_AfterAll);
+		baton->callback = new NanCallback(callback);baton->obj = obj;
+    baton->req.data = baton; //uv_work_t* req = new uv_work_t();
+    uv_queue_work(uv_default_loop(), &baton->req, VisaEmitter::StaticQuery, (uv_after_work_cb)VisaEmitter::EIO_AfterAll2);
     NanReturnUndefined();
   }
   
@@ -270,16 +239,9 @@ namespace raw {
 		memset(baton, 0, sizeof(GenericBaton));
 		strcpy(baton->errorString, "");
     strcpy(baton->command, obj->address_->c_str());
-		baton->callback = new NanCallback(callback);
-		
-		uv_work_t* req = new uv_work_t();
-  	req->data = baton;
-		QueuedWrite* queuedWrite = new QueuedWrite();
-		memset(queuedWrite, 0, sizeof(QueuedWrite));
-		queuedWrite->baton = baton;
-		queuedWrite->req.data = queuedWrite;
-		queuedWrite->obj = obj;
-    uv_queue_work(uv_default_loop(), &queuedWrite->req, VisaEmitter::StaticTrigger, NULL);
+		baton->callback = new NanCallback(callback);baton->obj = obj;
+    baton->req.data = baton; //uv_work_t* req = new uv_work_t();
+    uv_queue_work(uv_default_loop(), &baton->req, VisaEmitter::StaticTrigger, NULL);
   }
   
   NAN_METHOD(VisaEmitter::DeviceClear) {
@@ -297,15 +259,9 @@ namespace raw {
 		strcpy(baton->errorString, "");
     strcpy(baton->command, "");
 		baton->callback = new NanCallback(callback);
-		
-		uv_work_t* req = new uv_work_t();
-  	req->data = baton;
-		QueuedWrite* queuedWrite = new QueuedWrite();
-		memset(queuedWrite, 0, sizeof(QueuedWrite));
-		queuedWrite->baton = baton;
-		queuedWrite->req.data = queuedWrite;
-		queuedWrite->obj = obj;
-    uv_queue_work(uv_default_loop(), &queuedWrite->req, VisaEmitter::StaticDeviceClear,  (uv_after_work_cb)VisaEmitter::EIO_AfterAll);
+    baton->obj = obj;
+    baton->req.data = baton; //uv_work_t* req = new uv_work_t();
+    uv_queue_work(uv_default_loop(), &baton->req,  VisaEmitter::StaticDeviceClear,  (uv_after_work_cb)VisaEmitter::EIO_AfterAll2);
   }
   
   void VisaEmitter::HandleHardwareEvent (int status, int srqStatus) {
