@@ -6,8 +6,6 @@ namespace raw {
   /* OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN */
   
   void VisaEmitter::EIO_Open(GenericBaton* data) {
-		//GenericBaton* data = static_cast<GenericBaton*>(queuedWrite->baton);
-    printf("5");
     char temp[QUERY_STRING_SIZE];
     ViStatus status = -1;
     if (this->isConnected)
@@ -16,7 +14,6 @@ namespace raw {
       ErrorCodeToString(temp, status, data->errorString);
       return;
     }
-    printf("6");
     status = viOpenDefaultRM(&defaultRM);
     if (status < VI_SUCCESS) {
       _snprintf(temp, sizeof(temp), "Opening RM");
@@ -54,9 +51,9 @@ namespace raw {
       m_async = uv_async_t();
       m_async.data = this;    
       uv_async_init(uv_default_loop(), &m_async, reinterpret_cast<uv_async_cb>(aCallback));
+      isAsyncInitialized = true;
       
-      ViBuf bufferHandle = (ViBuf)malloc(ERROR_STRING_SIZE);
-      status = viInstallHandler(session, VI_EVENT_SERVICE_REQ, callback, bufferHandle);
+      status = viInstallHandler(session, VI_EVENT_SERVICE_REQ, callback, this->uniqueSRQhandlerIdentification);
       if (status >= VI_SUCCESS) {
         status = viEnableEvent(session, VI_EVENT_SERVICE_REQ, VI_HNDLR, VI_NULL);
       }  
@@ -65,8 +62,8 @@ namespace raw {
         ErrorCodeToString(temp, status, data->errorString);
         return;
       }        
+      this->installedSRQHanlder = true;
     }    
-      printf("7");
     _snprintf_s(data->result, _countof(data->result), _TRUNCATE, "%d", session);
   }
   
@@ -136,7 +133,6 @@ namespace raw {
   /* TRIGGER TRIGGER */
   
   void VisaEmitter::EIO_Trigger(GenericBaton* data) {
-    // GenericBaton* data = static_cast<GenericBaton*>(queuedWrite->baton);
     if (!this->isConnected || session < 1) {
 			ErrorCodeToString("not connected", 11, data->errorString);
       printf("not connected");
@@ -166,19 +162,57 @@ namespace raw {
     
     if ((status < VI_SUCCESS)) {
       _snprintf(temp, sizeof(temp), "%d viClear", session);
-      printf("status < VI_SUCCESS");
       ErrorCodeToString(temp, status, data->errorString);
       return;
     } 
     _snprintf_s(data->result, _countof(data->result), _TRUNCATE, "%d", 0);
   }
   
+  /* close close close close close close close close close close close close close close close close close close close close close close close close */
   
+  void VisaEmitter::EIO_Close(GenericBaton* data) {
+    if (!this->isConnected || session < 1) {
+			ErrorCodeToString("not connected", 11, data->errorString);
+			return;
+		}
+    char temp[QUERY_STRING_SIZE];
+    ViStatus status;
+    if(this->installedSRQHanlder) {
+      status = viDisableEvent(session, VI_EVENT_SERVICE_REQ, VI_HNDLR);
+      if (status < VI_SUCCESS) {
+        _snprintf(temp, sizeof(temp), "viDisableEvent / Device close");
+        ErrorCodeToString(temp, status, data->errorString);
+        return;
+      }  else {
+        status = viUninstallHandler(session, VI_EVENT_SERVICE_REQ, callback, this->uniqueSRQhandlerIdentification);
+      }  
+      if (status < VI_SUCCESS) {
+        _snprintf(temp, sizeof(temp), "viUninstallHandler / Device close");
+        ErrorCodeToString(temp, status, data->errorString);
+        return;
+      }  
+    }
+      
+    
+    status = viClose(session);
+    if ((status < VI_SUCCESS)) {
+      _snprintf(temp, sizeof(temp), "%d viClose", session);
+      ErrorCodeToString(temp, status, data->errorString);
+      return;
+    }
+    
+    this->isConnected = false;
+    if (isAsyncInitialized){
+      uv_close((uv_handle_t*) &m_async, NULL);
+      this->isAsyncInitialized = false;
+    }
+    
+    _snprintf_s(data->result, _countof(data->result), _TRUNCATE, "%d", 0);
+  }
   
   /* after all after all after all after all after all after all after all after all after all after all after all after all after all after all */
   
-  void VisaEmitter::EIO_AfterAll2(uv_work_t* req) {
-    printf("BB");
+  void VisaEmitter::EIO_AfterAll(uv_work_t* req) {
     NanScope();
     
     GenericBaton* baton = static_cast<GenericBaton*>(req->data);
@@ -195,26 +229,6 @@ namespace raw {
 
     delete baton->callback;
     delete baton;
-	}
-  
-  void VisaEmitter::EIO_AfterAll(uv_work_t* req) {
-    printf("aa");
-    NanScope();
-		QueuedWrite* queuedWrite = static_cast<QueuedWrite*>(req->data);
-		GenericBaton* baton = static_cast<GenericBaton*>(queuedWrite->baton);
-		Handle<Value> argv[2];
-		if(baton->errorString[0]) {
-			argv[0] = Exception::Error(NanNew<String>(baton->errorString));
-			argv[1] = NanUndefined();
-		} else {
-			argv[0] = NanUndefined();
-			argv[1] = NanNew(baton->result);
-		}
-		baton->callback->Call(2, argv);
-
-    delete baton->callback;
-    delete baton;
-    delete queuedWrite;
 	}
 	
   /* CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK CALLBACK  */

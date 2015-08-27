@@ -36,4 +36,10 @@ namespace raw {
 		VisaEmitter* obj = static_cast<VisaEmitter*>(data->obj);
 		obj->EIO_Trigger(data);
 	}
+	
+	void VisaEmitter::StaticClose(uv_work_t* req) {
+		GenericBaton* data = static_cast<GenericBaton*>(req->data);
+		VisaEmitter* obj = static_cast<VisaEmitter*>(data->obj);
+		obj->EIO_Close(data);
+	}
 }

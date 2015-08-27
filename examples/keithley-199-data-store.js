@@ -39,6 +39,7 @@ kei199.on('srq', function (stb) {
           return callback();
         });
       },
+      function (callback) { kei199.close(callback) }, 
     ], function (err, res) {
       if (err) {
         console.log('ERROR1');
@@ -61,16 +62,12 @@ kei199.on('srq', function (stb) {
 
 async.series([
   function (callback) { kei199.open(callback); },
-  function (callback) { setTimeout(callback, 500) },
+  //function (callback) { setTimeout(callback, 500) },
   function (callback) { kei199.deviceClear(callback); },
   function (callback) { kei199.write("M1X", callback) }, // 2-pole; scientific notation; DCV 3V;  
-  function (callback) { setTimeout(callback, 500) },
-  function (callback) { kei199.write("O0G1F0R3X", callback) }, // 2-pole; scientific notation; DCV 3V;  
-  function (callback) { setTimeout(callback, 500) },
+  function (callback) { kei199.write("O0G1F0R0X", callback) }, // 2-pole; scientific notation; DCV 3V;  
   function (callback) { kei199.write("N0Q250T2X", callback) }, // one channel per store interval; 250ms interval; continious GET
-  function (callback) { setTimeout(callback, 500) },
   function (callback) { kei199.write("I" + numberOfMeasurements + "X", callback) },// 4 readigns;
-  function (callback) { setTimeout(callback, 500) },
   function (callback) { kei199.write("M3X", callback) },  // SRQ when full and on overrange
   function (callback) { setTimeout(callback, 500) },
   function (callback) { kei199.trigger(callback) } // ATN low; address; GET command byte // probably everything is done by viAssertTrigger

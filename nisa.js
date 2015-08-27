@@ -65,6 +65,11 @@ VisaPort.prototype.deviceClear = function(callback) {
 	return this;
 }
 
+VisaPort.prototype.close = function(callback) {
+	this.wrap.close(callback);
+	return this;
+}
+
 VisaPort.prototype.onSrq = function (stb) {
 	var me = this;
 	me.emit ("srq", stb);

@@ -25,7 +25,6 @@ using namespace v8;
 namespace raw {
   struct ListBaton;
   struct GenericBaton;
-  struct QueuedWrite;
   
   ViStatus write(ViSession instr1, const char* input);
   ViStatus _VI_FUNCH callback(ViSession vi, ViEventType etype, ViEvent eventContext, ViAddr userHandle);
@@ -35,6 +34,7 @@ namespace raw {
     public:
       static ViSession defaultRM;
       ViSession session;
+      ViAddr uniqueSRQhandlerIdentification;
       int lastSTB;
       
       void HandleHardwareEvent (int status, int revents);
@@ -47,6 +47,7 @@ namespace raw {
       
       static std::vector<VisaEmitter*> instances;
       std::string *address_;
+      bool installedSRQHanlder;
     
       static NAN_METHOD(New);
       static NAN_METHOD(Open);
@@ -55,10 +56,12 @@ namespace raw {
       static NAN_METHOD(Query);
       static NAN_METHOD(Trigger);
       static NAN_METHOD(DeviceClear);
+      static NAN_METHOD(Close);
       
       uv_async_t m_async;
       
       bool isConnected;
+      bool isAsyncInitialized;
       
       static void aCallback(uv_async_t *async, int status);
       
@@ -80,8 +83,10 @@ namespace raw {
       static void StaticDeviceClear(uv_work_t* req);
       void EIO_DeviceClear(GenericBaton* data);
       
+      static void StaticClose(uv_work_t* req);
+      void EIO_Close(GenericBaton* data);
+      
       static void EIO_AfterAll(uv_work_t* req);
-      static void EIO_AfterAll2(uv_work_t* req);
   }; 
   
   struct ListResultItem {
@@ -109,13 +114,6 @@ namespace raw {
       NanCallback* callback;
       std::list<ListResultItem*> results;
       char errorString[ERROR_STRING_SIZE];
-      VisaEmitter* obj;
-  };
-  
-  struct QueuedWrite {
-    public:
-      uv_work_t req;
-      GenericBaton* baton;
       VisaEmitter* obj;
   };
 }; /* namespace raw */
