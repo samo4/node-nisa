@@ -5,8 +5,8 @@ namespace raw {
 	
   /* OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN OPEN */
   
-  void VisaEmitter::EIO_Open(QueuedWrite* queuedWrite) {
-		GenericBaton* data = static_cast<GenericBaton*>(queuedWrite->baton);
+  void VisaEmitter::EIO_Open(GenericBaton* data) {
+		//GenericBaton* data = static_cast<GenericBaton*>(queuedWrite->baton);
       
     char temp[QUERY_STRING_SIZE];
     ViStatus status = -1;
@@ -92,8 +92,7 @@ namespace raw {
   
   /* READ READ READ */
   
-  void VisaEmitter::EIO_Read(QueuedWrite* queuedWrite) {
-		GenericBaton* data = static_cast<GenericBaton*>(queuedWrite->baton);
+  void VisaEmitter::EIO_Read(GenericBaton* data) {
 		if (!this->isConnected || session < 1) {
 			ErrorCodeToString("not connected", 11, data->errorString);
 			return;
@@ -115,8 +114,7 @@ namespace raw {
   
   /* QUERY QUERY */
   
-  void VisaEmitter::EIO_Query(QueuedWrite* queuedWrite) {
-    GenericBaton* data = static_cast<GenericBaton*>(queuedWrite->baton);
+  void VisaEmitter::EIO_Query(GenericBaton* data) {
     if (!sizeof(data->command) || !this->isConnected || session < 1) {
 			ErrorCodeToString("not connected or bad empty command", 11, data->errorString);
 			return;
@@ -136,8 +134,8 @@ namespace raw {
   
   /* TRIGGER TRIGGER */
   
-  void VisaEmitter::EIO_Trigger(QueuedWrite* queuedWrite) {
-    GenericBaton* data = static_cast<GenericBaton*>(queuedWrite->baton);
+  void VisaEmitter::EIO_Trigger(GenericBaton* data) {
+    // GenericBaton* data = static_cast<GenericBaton*>(queuedWrite->baton);
     if (!this->isConnected || session < 1) {
 			ErrorCodeToString("not connected", 11, data->errorString);
       printf("not connected");
@@ -156,9 +154,7 @@ namespace raw {
   
   /* device clear */
   
-  void VisaEmitter::EIO_DeviceClear(QueuedWrite* queuedWrite) {
-    
-    GenericBaton* data = static_cast<GenericBaton*>(queuedWrite->baton);
+  void VisaEmitter::EIO_DeviceClear(GenericBaton* data) {
     if (!this->isConnected || session < 1) {
 			ErrorCodeToString("not connected", 11, data->errorString);
 			return;
