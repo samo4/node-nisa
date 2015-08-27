@@ -136,7 +136,11 @@ namespace raw {
 		baton->callback = new NanCallback(callback);
     baton->enableSRQ = options->Get(NanNew<String>("enableSRQ"))->ToBoolean()->BooleanValue();
     baton->assertREN = options->Get(NanNew<String>("assertREN"))->ToBoolean()->BooleanValue();
+    baton->obj = obj;
+    baton->req.data = baton;
+    uv_queue_work(uv_default_loop(), &baton->req, VisaEmitter::StaticOpen, (uv_after_work_cb)VisaEmitter::EIO_AfterAll);
 		
+    /*
 		uv_work_t* req = new uv_work_t();
   	req->data = baton;
 		QueuedWrite* queuedWrite = new QueuedWrite();
@@ -145,7 +149,7 @@ namespace raw {
 		queuedWrite->req.data = queuedWrite;
 		queuedWrite->obj = obj;
     
-    uv_queue_work(uv_default_loop(), &queuedWrite->req, VisaEmitter::StaticOpen, (uv_after_work_cb)VisaEmitter::EIO_AfterAll);    
+    uv_queue_work(uv_default_loop(), &queuedWrite->req, VisaEmitter::StaticOpen, (uv_after_work_cb)VisaEmitter::EIO_AfterAll);*/    
     NanReturnUndefined();
   }
   

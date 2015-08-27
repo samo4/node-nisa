@@ -91,9 +91,11 @@ namespace raw {
   
   struct GenericBaton {
     public:
-      char command[QUERY_STRING_SIZE];
+      uv_work_t req;
       NanCallback* callback;
       VisaEmitter* obj;
+      
+      char command[QUERY_STRING_SIZE];
       char result[QUERY_STRING_SIZE];
       char errorString[ERROR_STRING_SIZE];
       // properties below are used only for Open 
