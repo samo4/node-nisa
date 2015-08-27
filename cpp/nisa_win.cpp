@@ -296,18 +296,6 @@ namespace raw {
   
   /* LOW LEVEL LOW LEVEL LOW LEVEL LOW LEVEL LOW LEVEL LOW LEVEL LOW LEVEL LOW LEVEL LOW LEVEL LOW LEVEL LOW LEVEL LOW LEVEL LOW LEVEL */
   
-  ViStatus write(ViSession session, const char* input)
-  {
-    ViUInt32 writeCount;
-    if (sizeof(input) > 4) {
-      throw std::invalid_argument( "viWrite input string too long" );
-    }
-    
-    char temp[500];
-    _snprintf_s(temp, sizeof(temp), input);
-    return viWrite(session, (ViBuf)temp, (ViUInt32)strlen(temp), &writeCount);
-  }
-  
   void ErrorCodeToString(const char* prefix, int errorCode, char *errorStr) {
     switch(errorCode) {
     // success codes for completeness
