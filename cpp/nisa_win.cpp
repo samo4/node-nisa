@@ -107,6 +107,7 @@ namespace raw {
 			ErrorCodeToString(temp, status, data->errorString);
 			return;
 		}
+    //printf("read: %d\n", returnCount);
     _snprintf_s(data->result, _countof(data->result), _TRUNCATE, "%s", temp);
 	}  
   

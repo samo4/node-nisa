@@ -17,8 +17,14 @@ function VisaPort(path, options) {
 	var self = this;
     options = (typeof options !== 'function') && options || {};
 	var opts = {};
-	opts.enableSRQ = options.enableSRQ || _options.enableSRQ;
-	opts.assertREN = options.assertREN || _options.assertREN;
+	opts.enableSRQ = _options.enableSRQ;
+	if (options.hasOwnProperty('enableSRQ')) {
+		opts.enableSRQ = options.enableSRQ;
+	}
+	opts.assertREN = _options.assertREN;
+	if (options.hasOwnProperty('assertREN')) {
+		opts.assertREN = options.assertREN;
+	}
 	this.options = opts;
 	this.wrap = new raw.VisaEmitter(path);
 	this.wrap.on ("srq", this.onSrq.bind (self));
