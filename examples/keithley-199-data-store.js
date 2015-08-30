@@ -22,12 +22,12 @@ kei199.on('srq', function (stb) {
         async.forEachOf(items, function (v, k, next) {
           kei199.read(function (err, res) {
             var scientificNotation = /([+/-]\d+\.\d+[Ee][+/-]\d+)(,[B](\d{0,3})){0,1}(,[C](\d{0,3})){0,1}/;
-            var match = scientificNotation.exec(res);
+            var match = scientificNotation.exec(res.toString('ascii'));
             items[k] = new Array(4);
             items[k][0] = Number(match[3]);
             items[k][1] = Number(match[5]);
             items[k][2] = Number(match[1]);
-            items[k][3] = res; 
+            items[k][3] = res.toString('ascii'); 
             return next();
           });
         }, function (err) {

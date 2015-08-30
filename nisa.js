@@ -42,6 +42,7 @@ VisaPort.prototype.open = function (callback) {
 	this.wrap.open(this.options, function(err, res) {
 		if (!err) {
 			me.emit ("open", res);
+			return callback(err, res);
 		} else if (callback) {
 			return callback(err, res);
 		}
