@@ -35,7 +35,7 @@ VisaPort.prototype.open = function (callback) {
 		} else {
 			console.log("ERR: ", err);
 		}  
-		return callback();
+		return callback(err, res);
 	});
 	return this;
 }
