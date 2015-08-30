@@ -34,12 +34,11 @@ util.inherits (VisaPort, EventEmitter);
 
 VisaPort.prototype.open = function (callback) {
 	var me = this;
-	
 	this.wrap.open(this.options, function(err, res) {
 		if (!err) {
 			me.emit ("open", res);
 		} else {
-			console.log("ERR: ", err);
+			me.emit ("error", err);
 		}  
 		return callback(err, res);
 	});

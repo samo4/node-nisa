@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <meta charset="utf-8" />
+  <title>NODE.JS INTERACTIVE IO</title>
+ </head>
+ <body>
+            <h1>NODE.JS INTERACTIVE IO</h1>
+            
+            <input type="text" id="visaaddress" value="GPIB0::12::INSTR" />
+            <input type="text" id="command" value="Q21S0G0F0R0X" />
+            <button>SEND</button>
+            <h3>Receive Message</h3>
+            <h4></h4>
+            <script src="/socket.io/socket.io.js"></script>
+            <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
+            <script>
+                var count = 0;
+                var t = setInterval(function() {
+                    $('h4').text(count + " readings/s");
+                    count = 0;
+                },1000);
+                var socket = io();
+                $('button').click(function(){
+                	var addr = $("#visaaddress").val();
+                	var cmd = $("#command").val();
+                	var msg = {
+					    addr : addr,  
+					    cmd : cmd  
+                		}
+                    socket.emit('sendmsg',msg);
+                });
+                socket.on('message',function(data){
+                    $('h3').text(data.message);
+                    count++;
+                });
+                
+            </script>
+ </body>
+</html>

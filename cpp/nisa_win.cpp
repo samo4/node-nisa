@@ -122,28 +122,9 @@ namespace raw {
     }
     
     temp[numberOfBytes] = 0;
-    
-    
-    //strcpy(data->buffer, temp);
-    memcpy(data->buffer, temp, returnCount);
-    
     data->bufferLength = returnCount;
-    _snprintf_s(data->result, _countof(data->result), _TRUNCATE, "%s", temp);
-    
-    /*
-      
-		char temp[QUERY_STRING_SIZE];
-		memset(temp, 0, sizeof(temp));
-		ViInt32 rdBufferSize = sizeof(temp);
-		ViUInt32 returnCount;
-    ViStatus status = viRead(session, (ViBuf)temp, QUERY_STRING_SIZE, &returnCount);
-		if ((status < VI_SUCCESS)) {
-			_snprintf(temp, sizeof(temp), "%d viRead, returnCount: %d", session, returnCount);
-			ErrorCodeToString(temp, status, data->errorString);
-			return;
-		}
-    //printf("read: %d\n", returnCount);
-    _snprintf_s(data->result, _countof(data->result), _TRUNCATE, "%s", temp);*/
+    memcpy(data->buffer, temp, returnCount);
+    delete temp;
 	}  
   
   /* QUERY QUERY */
@@ -228,7 +209,6 @@ namespace raw {
         return;
       }  
     }
-      
     
     status = viClose(session);
     if ((status < VI_SUCCESS)) {
@@ -249,8 +229,7 @@ namespace raw {
   /* after all after all after all after all after all after all after all after all after all after all after all after all after all after all */
   
   void VisaEmitter::EIO_AfterAll(uv_work_t* req) {
-    NanScope();
-    
+    NanScope();    
     GenericBaton* baton = static_cast<GenericBaton*>(req->data);
       
 		Handle<Value> argv[2];
@@ -265,10 +244,8 @@ namespace raw {
 			argv[1] = NanNew(baton->result);
 		}
 		baton->callback->Call(2, argv);
-    
-    
-  
 
+    delete baton->buffer;
     delete baton->callback;
     delete baton;
 	}
