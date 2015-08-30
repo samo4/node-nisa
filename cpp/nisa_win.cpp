@@ -43,11 +43,11 @@ namespace raw {
     // status = viSetAttribute(session, VI_ATTR_TERMCHAR, 0x0A);
     //status = viSetAttribute(session, VI_ATTR_TERMCHAR_EN, VI_TRUE);
     
-    if (data->assertREN) {
+    if (this->assertREN) {
       viGpibControlREN(session, VI_GPIB_REN_ASSERT);
     }
     
-    if (data->enableSRQ)  
+    if (this->enableSRQ)  
     {
       m_async = uv_async_t();
       m_async.data = this;    

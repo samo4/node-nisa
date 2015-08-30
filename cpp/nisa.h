@@ -63,6 +63,8 @@ namespace raw {
       bool isConnected;
       bool isAsyncInitialized;
       unsigned int timeoutMiliSeconds;
+      bool enableSRQ;
+      bool assertREN;
       
       static void aCallback(uv_async_t *async, int status);
       
@@ -108,9 +110,6 @@ namespace raw {
       
       unsigned int bufferLength = 0;
       char *buffer;
-      // properties below are used only for Open 
-      bool enableSRQ;
-      bool assertREN;
   };
   
   struct ListBaton {

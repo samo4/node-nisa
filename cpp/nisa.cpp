@@ -127,14 +127,15 @@ namespace raw {
     }
     Local<Function> callback = args[1].As<Function>();
     
+    obj->enableSRQ = options->Get(NanNew<String>("enableSRQ"))->ToBoolean()->BooleanValue();
+    obj->assertREN = options->Get(NanNew<String>("assertREN"))->ToBoolean()->BooleanValue();
+    obj->timeoutMiliSeconds = options->Get(NanNew<String>("timeoutMiliSeconds"))->Uint32Value();
+    
     GenericBaton* baton = new GenericBaton();
 		memset(baton, 0, sizeof(GenericBaton));
 		strcpy(baton->errorString, "");
     strcpy(baton->command, obj->address_->c_str());
 		baton->callback = new NanCallback(callback);
-    baton->enableSRQ = options->Get(NanNew<String>("enableSRQ"))->ToBoolean()->BooleanValue();
-    baton->assertREN = options->Get(NanNew<String>("assertREN"))->ToBoolean()->BooleanValue();
-    obj->timeoutMiliSeconds = options->Get(NanNew<String>("timeoutMiliSeconds"))->Uint32Value();
     baton->obj = obj;
     uv_work_t *req = new uv_work_t;
     baton->req = *req;
