@@ -8,7 +8,8 @@ for (var key in EventEmitter.prototype) {
 
 var _options = {
     enableSRQ: true,
-    assertREN: true
+    assertREN: true,
+	timeoutMiliSeconds: 2000
 }
 
 function VisaPort(path, options) {
@@ -24,6 +25,10 @@ function VisaPort(path, options) {
 	opts.assertREN = _options.assertREN;
 	if (options.hasOwnProperty('assertREN')) {
 		opts.assertREN = options.assertREN;
+	}
+	opts.timeoutMiliSeconds = _options.timeoutMiliSeconds;
+	if (options.hasOwnProperty('timeoutMiliSeconds') && options.timeoutMiliSeconds > 100) {
+		opts.timeoutMiliSeconds = options.timeoutMiliSeconds;
 	}
 	this.options = opts;
 	this.wrap = new raw.VisaEmitter(path);

@@ -62,6 +62,7 @@ namespace raw {
       
       bool isConnected;
       bool isAsyncInitialized;
+      unsigned int timeoutMiliSeconds;
       
       static void aCallback(uv_async_t *async, int status);
       

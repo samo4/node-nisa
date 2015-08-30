@@ -20,18 +20,19 @@ namespace raw {
       ErrorCodeToString(temp, status, data->errorString);
       return;
     }
-    status = viOpen(defaultRM, data->command, VI_NULL, VI_NULL, &session);
+    status = viOpen(defaultRM, data->command, VI_NULL, this->timeoutMiliSeconds, &session);
     if (status < VI_SUCCESS) {
       _snprintf(temp, sizeof(temp), "Opening session %s", data->command);
       ErrorCodeToString(temp, status, data->errorString);
       return;
     }
-    status = viSetAttribute(session, VI_ATTR_TMO_VALUE, 5000);
+    status = viSetAttribute(session, VI_ATTR_TMO_VALUE, this->timeoutMiliSeconds);
     if (status < VI_SUCCESS) {
-      _snprintf(temp, sizeof(temp), "Setting attributes on %s", data->command);
+      _snprintf(temp, sizeof(temp), "Setting timeout to %d", this->timeoutMiliSeconds);
       ErrorCodeToString(temp, status, data->errorString);
       return;
     }
+    
     
     this->isConnected = true;
     // status = viSetAttribute(instr, VI_ATTR_SEND_END_EN, VI_TRUE);

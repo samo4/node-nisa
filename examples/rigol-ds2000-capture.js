@@ -3,7 +3,8 @@ var async = require('async');
 var Visa = require("../nisa.js").Visa;
 var rigol = new Visa("TCPIP0::192.168.0.11::inst0::INSTR", { 
     assertREN: false, 
-    enableSRQ: false 
+    enableSRQ: false,
+    timeoutMiliSeconds: 1000
   });
   
 function displayResult (err, res) {

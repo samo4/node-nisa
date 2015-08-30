@@ -37,10 +37,6 @@ namespace raw {
   ViSession VisaEmitter::defaultRM;
   static Persistent<FunctionTemplate> _constructor;
   std::vector<VisaEmitter*> VisaEmitter::instances = std::vector<VisaEmitter*>();
-
-  /*  typedef struct {
-    uint16_t stb;
-  } vi_callback_result_t; */
   
   void InitAll (Handle<Object> target) {
     
@@ -138,6 +134,7 @@ namespace raw {
 		baton->callback = new NanCallback(callback);
     baton->enableSRQ = options->Get(NanNew<String>("enableSRQ"))->ToBoolean()->BooleanValue();
     baton->assertREN = options->Get(NanNew<String>("assertREN"))->ToBoolean()->BooleanValue();
+    obj->timeoutMiliSeconds = options->Get(NanNew<String>("timeoutMiliSeconds"))->Uint32Value();
     baton->obj = obj;
     uv_work_t *req = new uv_work_t;
     baton->req = *req;
