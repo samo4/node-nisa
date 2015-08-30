@@ -28,10 +28,8 @@ The implemented functions were selected solely to control my current setup. This
 
 A lot of the code was inspired by (or blatantly copied) from:
 - https://github.com/voodootikigod/node-serialport
-
-and
-
 - https://bitbucket.org/stephenwvickers/node-raw-socket
+- http://svn.clifford.at/handicraft/2013/rigol-ds2000-shell/
 
 Renewed interest was inspired by 7M4MON and forking his ffi implementation (still a viable approach):
 

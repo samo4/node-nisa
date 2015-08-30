@@ -105,6 +105,7 @@ namespace raw {
 			return;
 		}
     
+    data->buffer = (char*) malloc(numberOfBytes + 1); 
     char *temp = (char*) malloc(numberOfBytes + 1);
     char *p = temp;
     ViUInt32 returnCount;
@@ -120,7 +121,13 @@ namespace raw {
       p += returnCount;
     }
     
-    printf("read: %d\n", returnCount);
+    temp[numberOfBytes] = 0;
+    
+    
+    //strcpy(data->buffer, temp);
+    memcpy(data->buffer, temp, returnCount);
+    
+    data->bufferLength = returnCount;
     _snprintf_s(data->result, _countof(data->result), _TRUNCATE, "%s", temp);
     
     /*
@@ -250,11 +257,17 @@ namespace raw {
 		if(baton->errorString[0]) {
 			argv[0] = Exception::Error(NanNew<String>(baton->errorString));
 			argv[1] = NanUndefined();
-		} else {
+		} else if (baton->bufferLength > 0) {
+      argv[0] = NanUndefined();
+      argv[1] = NanNewBufferHandle(baton->buffer, baton->bufferLength);
+    } else {
 			argv[0] = NanUndefined();
 			argv[1] = NanNew(baton->result);
 		}
 		baton->callback->Call(2, argv);
+    
+    
+  
 
     delete baton->callback;
     delete baton;

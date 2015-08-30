@@ -183,7 +183,7 @@ namespace raw {
 			NanThrowTypeError("First argument must be a number");
 			NanReturnUndefined();
 		}
-    int64_t numberOfBytes = args[0]->NumberValue();
+    int numberOfBytes = (int) args[0]->NumberValue();
     
 		if(!args[1]->IsFunction()) {
 			NanThrowTypeError("second argument must be a function: err, res");

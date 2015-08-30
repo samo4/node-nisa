@@ -24,7 +24,7 @@ using namespace v8;
 
 namespace raw {
   struct ListBaton;
-  struct GenericBaton;
+  class GenericBaton;
   
   ViStatus write(ViSession instr1, const char* input);
   ViStatus _VI_FUNCH callback(ViSession vi, ViEventType etype, ViEvent eventContext, ViAddr userHandle);
@@ -95,7 +95,7 @@ namespace raw {
       std::string idn;
   };
   
-  struct GenericBaton {
+  class GenericBaton {
     public:
       uv_work_t req;
       NanCallback* callback;
@@ -104,6 +104,9 @@ namespace raw {
       char command[QUERY_STRING_SIZE];
       char result[QUERY_STRING_SIZE];
       char errorString[ERROR_STRING_SIZE];
+      
+      unsigned int bufferLength = 0;
+      char *buffer;
       // properties below are used only for Open 
       bool enableSRQ;
       bool assertREN;

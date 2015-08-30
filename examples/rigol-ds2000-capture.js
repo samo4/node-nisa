@@ -21,21 +21,21 @@ async.series([
     if (err) {
       return callback(err);
     }
-    var numberOfBytesToRead = Number(res.substring(2));
-    rigol.read(numberOfBytesToRead, function(err, res) {
+    console.log(res);
+    console.log(res.toString('ascii'));
+    var numberOfBytesToRead = Number(res.toString('ascii').substring(2));
+    rigol.read(numberOfBytesToRead, function(err, buffer) {
       if (err) {
         return callback(err);
       }
-      console.log(res.length);
-      var fs = require('fs');
-      fs.writeFile("res.bmp", res, function(err) {
-          if(err) {
-              return console.log(err);
-          }
-          console.log("The file was saved!");
-      }); 
+      console.log(buffer.length);
+      var Jimp = require("jimp");
+      var image = new Jimp(buffer, function (err, image) {
+        if (!err) {
+          image.write("res.jpg"); 
+        } 
+      });
       
-      console.log(res);
       return callback();
     });
   }) },
