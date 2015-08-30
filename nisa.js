@@ -56,8 +56,17 @@ VisaPort.prototype.query = function (query, callback) {
 	return this;
 }
 
-VisaPort.prototype.read = function (callback) {
-	this.wrap.read(callback);
+VisaPort.prototype.read = function (numberOfBytes, callback) {
+	var args = Array.prototype.slice.call(arguments);
+    callback = args.pop();
+    if (typeof (callback) !== 'function') {
+      callback = null;
+    }
+	numberOfBytes = args.pop();
+	if (typeof (numberOfBytes) !== 'number') {
+      numberOfBytes = 256;
+    }
+	this.wrap.read(numberOfBytes, callback);
 	return this;
 }
 

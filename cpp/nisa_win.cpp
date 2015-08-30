@@ -95,12 +95,40 @@ namespace raw {
 			ErrorCodeToString("not connected", 11, data->errorString);
 			return;
 		}
+    int64_t numberOfBytes = atoi(data->command);
+    if (numberOfBytes < 1) {
+			ErrorCodeToString("trying to read 0 bytes...", 11, data->errorString);
+			return;
+		}
+    if (numberOfBytes >  (uint32_t)-1) {
+			ErrorCodeToString("trying to read more than uint32 bytes...", 11, data->errorString);
+			return;
+		}
+    
+    char *temp = (char*) malloc(numberOfBytes + 1);
+    char *p = temp;
+    ViUInt32 returnCount;
+    
+    while(p != temp+numberOfBytes) {  
+      // we need more checks before that cast below...
+      ViStatus status = viRead(session, reinterpret_cast<ViBuf>(p), (ViUInt32) (temp + numberOfBytes - p), &returnCount);
+      if ((status < VI_SUCCESS)) {
+        _snprintf(temp, sizeof(temp), "%d viRead, returnCount: %d", session, returnCount);
+        ErrorCodeToString(temp, status, data->errorString);
+        return;
+      }
+      p += returnCount;
+    }
+    
+    printf("read: %d\n", returnCount);
+    _snprintf_s(data->result, _countof(data->result), _TRUNCATE, "%s", temp);
+    
+    /*
       
 		char temp[QUERY_STRING_SIZE];
 		memset(temp, 0, sizeof(temp));
 		ViInt32 rdBufferSize = sizeof(temp);
 		ViUInt32 returnCount;
-    
     ViStatus status = viRead(session, (ViBuf)temp, QUERY_STRING_SIZE, &returnCount);
 		if ((status < VI_SUCCESS)) {
 			_snprintf(temp, sizeof(temp), "%d viRead, returnCount: %d", session, returnCount);
@@ -108,7 +136,7 @@ namespace raw {
 			return;
 		}
     //printf("read: %d\n", returnCount);
-    _snprintf_s(data->result, _countof(data->result), _TRUNCATE, "%s", temp);
+    _snprintf_s(data->result, _countof(data->result), _TRUNCATE, "%s", temp);*/
 	}  
   
   /* QUERY QUERY */

@@ -178,14 +178,22 @@ namespace raw {
   NAN_METHOD(VisaEmitter::Read) {
 		NanScope();
 		VisaEmitter* obj = ObjectWrap::Unwrap<VisaEmitter>(args.This());
-		if(!args[0]->IsFunction()) {
-			NanThrowTypeError("argument must be a function: err, res");
+    
+    if(!args[0]->IsNumber()) {
+			NanThrowTypeError("First argument must be a number");
 			NanReturnUndefined();
 		}
-		Local<Function> callback = args[0].As<Function>();
+    int64_t numberOfBytes = args[0]->NumberValue();
+    
+		if(!args[1]->IsFunction()) {
+			NanThrowTypeError("second argument must be a function: err, res");
+			NanReturnUndefined();
+		}
+		Local<Function> callback = args[1].As<Function>();
 		
 		GenericBaton* baton = new GenericBaton();
 		memset(baton, 0, sizeof(GenericBaton));
+    _snprintf_s(baton->command, _countof(baton->command), _TRUNCATE, "%d", numberOfBytes);
 		strcpy(baton->errorString, "");
 		baton->callback = new NanCallback(callback);
     baton->obj = obj;

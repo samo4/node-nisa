@@ -17,7 +17,30 @@ async.series([
 	return callback();
   } ) },
   function (callback) { rigol.write(":DISP:DATA?", callback); },
-  function (callback) { rigol.read(function(err, res) {
+  function (callback) { rigol.read(11, function(err, res) {
+    if (err) {
+      return callback(err);
+    }
+    var numberOfBytesToRead = Number(res.substring(2));
+    rigol.read(numberOfBytesToRead, function(err, res) {
+      if (err) {
+        return callback(err);
+      }
+      console.log(res.length);
+      var fs = require('fs');
+      fs.writeFile("res.bmp", res, function(err) {
+          if(err) {
+              return console.log(err);
+          }
+          console.log("The file was saved!");
+      }); 
+      
+      console.log(res);
+      return callback();
+    });
+  }) },
+  /*
+  function (callback) { rigol.read(11, function(err, res) {
 	if (err) {
 		return callback(err);
 	}
@@ -31,7 +54,7 @@ async.series([
   
 	console.log(res);
 	return callback();
-  } ) },
+  } ) },*/
 ], function (err, res) {
   if (err) {
     console.log('ERROR');
