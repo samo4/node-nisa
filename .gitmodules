@@ -1,0 +1,3 @@
+[submodule "exmples"]
+	path = exmples
+	url = https://github.com/samofab/node-nisa-examples.git
