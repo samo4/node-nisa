@@ -111,16 +111,17 @@ namespace raw {
     char *p = temp;
     ViUInt32 returnCount;
     
-    while(p != temp+numberOfBytes) {  
+    //while(p != temp+numberOfBytes) {  
       // we need more checks before that cast below...
-      ViStatus status = viRead(session, reinterpret_cast<ViBuf>(p), (ViUInt32) (temp + numberOfBytes - p), &returnCount);
+      //ViStatus status = viRead(session, reinterpret_cast<ViBuf>(p), (ViUInt32) (temp + numberOfBytes - p), &returnCount);
+      ViStatus status = viRead(session, reinterpret_cast<ViBuf>(temp), (ViUInt32) numberOfBytes, &returnCount);
       if ((status < VI_SUCCESS)) {
         _snprintf(temp, sizeof(temp), "%d viRead, returnCount: %d", session, returnCount);
         ErrorCodeToString(temp, status, data->errorString);
         return;
       }
-      p += returnCount;
-    }
+      //p += returnCount;
+    //}
     
     temp[numberOfBytes] = 0;
     data->bufferLength = returnCount;
@@ -317,6 +318,10 @@ namespace raw {
   /* LOW LEVEL LOW LEVEL LOW LEVEL LOW LEVEL LOW LEVEL LOW LEVEL LOW LEVEL LOW LEVEL LOW LEVEL LOW LEVEL LOW LEVEL LOW LEVEL LOW LEVEL */
   
   void ErrorCodeToString(const char* prefix, int errorCode, char *errorStr) {
+    
+    // we need to replace this with viStatusDesc(instr,status,statStr);
+    
+    
     switch(errorCode) {
     // success codes for completeness
     case VI_SUCCESS:
