@@ -1,23 +1,32 @@
 {
-  "name": "node-callback",
+  "name": "node-nisa",
   "version": "1.0.0",
-  "description": "",
-  "main": "makecallback.js",
+  "description": "node.js module for interfacing with GPIB instruments with opinionated API and support for SRQ events.",
+  "main": "nisa.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "echo \"Error: no test specified; as this requires hardware to test, see examples repository\" && exit 1",
     "configure": "node-gyp configure",
     "build": "node-gyp build",
     "install": "node-gyp rebuild"
   },
-  "author": "",
-  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/samofab/node-nisa.git"
+  },
+  "keywords": [
+    "GPIB",
+    "HPIB",
+    "VISA"
+  ],
+  "author": "Samo Fabcic <samo@absint.si>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/samofab/node-nisa/issues"
+  },
+  "homepage": "https://github.com/samofab/node-nisa#readme",
   "gypfile": true,
   "dependencies": {
-    "async": "^1.4.2",
     "bindings": "^1.2.1",
-    "keypress": "^0.2.1",
-    "nan": "<2.0.0",
-    "paktc": "^1.0.1",
-    "standard-deviation-stream": "0.0.3"
+    "nan": "<2.0.0"
   }
 }
